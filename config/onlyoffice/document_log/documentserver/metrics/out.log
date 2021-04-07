@@ -1,0 +1,448 @@
+6 Apr 15:58:41 - [869] reading config file: ./config/config.js
+6 Apr 15:58:41 - server is up INFO
+6 Apr 16:05:50 - [866] reading config file: ./config/config.js
+6 Apr 16:05:50 - server is up INFO
+Flushing stats at  Tue Apr 06 2021 16:15:51 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: {},
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+Flushing stats at  Tue Apr 06 2021 16:25:51 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: { 'statsd.timestamp_lag': 0 },
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+6 Apr 16:45:24 - [894] reading config file: ./config/config.js
+6 Apr 16:45:24 - server is up INFO
+6 Apr 16:47:21 - [893] reading config file: ./config/config.js
+6 Apr 16:47:21 - server is up INFO
+6 Apr 17:57:33 - [869] reading config file: ./config/config.js
+6 Apr 17:57:33 - server is up INFO
+6 Apr 18:00:38 - [912] reading config file: ./config/config.js
+6 Apr 18:00:38 - server is up INFO
+6 Apr 18:05:55 - [870] reading config file: ./config/config.js
+6 Apr 18:05:55 - server is up INFO
+6 Apr 18:24:28 - [868] reading config file: ./config/config.js
+6 Apr 18:24:28 - server is up INFO
+6 Apr 18:35:23 - [894] reading config file: ./config/config.js
+6 Apr 18:35:23 - server is up INFO
+Flushing stats at  Tue Apr 06 2021 18:45:23 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: {},
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+6 Apr 18:57:21 - [869] reading config file: ./config/config.js
+6 Apr 18:57:21 - server is up INFO
+Flushing stats at  Tue Apr 06 2021 19:07:22 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: {},
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+6 Apr 19:15:21 - [866] reading config file: ./config/config.js
+6 Apr 19:15:21 - server is up INFO
+6 Apr 19:23:46 - [868] reading config file: ./config/config.js
+6 Apr 19:23:46 - server is up INFO
+6 Apr 21:35:02 - [870] reading config file: ./config/config.js
+6 Apr 21:35:02 - server is up INFO
+6 Apr 21:41:39 - [893] reading config file: ./config/config.js
+6 Apr 21:41:39 - server is up INFO
+6 Apr 21:43:04 - [896] reading config file: ./config/config.js
+6 Apr 21:43:04 - server is up INFO
+6 Apr 21:45:45 - [893] reading config file: ./config/config.js
+6 Apr 21:45:45 - server is up INFO
+6 Apr 21:51:44 - [893] reading config file: ./config/config.js
+6 Apr 21:51:44 - server is up INFO
+6 Apr 21:54:13 - [897] reading config file: ./config/config.js
+6 Apr 21:54:13 - server is up INFO
+6 Apr 21:56:00 - [867] reading config file: ./config/config.js
+6 Apr 21:56:00 - server is up INFO
+6 Apr 21:57:18 - [892] reading config file: ./config/config.js
+6 Apr 21:57:18 - server is up INFO
+6 Apr 22:09:21 - [893] reading config file: ./config/config.js
+6 Apr 22:09:21 - server is up INFO
+6 Apr 22:14:48 - [899] reading config file: ./config/config.js
+6 Apr 22:14:48 - server is up INFO
+6 Apr 22:19:00 - [894] reading config file: ./config/config.js
+6 Apr 22:19:00 - server is up INFO
+6 Apr 22:24:24 - [868] reading config file: ./config/config.js
+6 Apr 22:24:24 - server is up INFO
+6 Apr 22:28:00 - [880] reading config file: ./config/config.js
+6 Apr 22:28:01 - server is up INFO
+6 Apr 22:31:22 - [868] reading config file: ./config/config.js
+6 Apr 22:31:22 - server is up INFO
+6 Apr 22:36:09 - [894] reading config file: ./config/config.js
+6 Apr 22:36:09 - server is up INFO
+6 Apr 22:39:13 - [868] reading config file: ./config/config.js
+6 Apr 22:39:13 - server is up INFO
+6 Apr 22:42:58 - [893] reading config file: ./config/config.js
+6 Apr 22:42:58 - server is up INFO
+6 Apr 22:44:18 - [893] reading config file: ./config/config.js
+6 Apr 22:44:18 - server is up INFO
+6 Apr 22:48:08 - [893] reading config file: ./config/config.js
+6 Apr 22:48:08 - server is up INFO
+Flushing stats at  Tue Apr 06 2021 22:58:09 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: {},
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+6 Apr 23:09:39 - [892] reading config file: ./config/config.js
+6 Apr 23:09:39 - server is up INFO
+6 Apr 23:14:23 - [891] reading config file: ./config/config.js
+6 Apr 23:14:23 - server is up INFO
+6 Apr 23:18:18 - [894] reading config file: ./config/config.js
+6 Apr 23:18:18 - server is up INFO
+6 Apr 23:22:01 - [893] reading config file: ./config/config.js
+6 Apr 23:22:01 - server is up INFO
+6 Apr 23:27:50 - [893] reading config file: ./config/config.js
+6 Apr 23:27:50 - server is up INFO
+6 Apr 23:29:10 - [901] reading config file: ./config/config.js
+6 Apr 23:29:10 - server is up INFO
+6 Apr 23:34:40 - [893] reading config file: ./config/config.js
+6 Apr 23:34:40 - server is up INFO
+Flushing stats at  Tue Apr 06 2021 23:44:40 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: {},
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+6 Apr 23:51:30 - [893] reading config file: ./config/config.js
+6 Apr 23:51:30 - server is up INFO
+Flushing stats at  Wed Apr 07 2021 00:01:30 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: {},
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+7 Apr 00:07:18 - [897] reading config file: ./config/config.js
+7 Apr 00:07:18 - server is up INFO
+7 Apr 15:42:50 - [869] reading config file: ./config/config.js
+7 Apr 15:42:50 - server is up INFO
+7 Apr 15:45:06 - [894] reading config file: ./config/config.js
+7 Apr 15:45:06 - server is up INFO
+7 Apr 15:47:28 - [891] reading config file: ./config/config.js
+7 Apr 15:47:28 - server is up INFO
+7 Apr 15:52:30 - [893] reading config file: ./config/config.js
+7 Apr 15:52:30 - server is up INFO
+7 Apr 15:55:07 - [894] reading config file: ./config/config.js
+7 Apr 15:55:07 - server is up INFO
+7 Apr 15:58:20 - [893] reading config file: ./config/config.js
+7 Apr 15:58:20 - server is up INFO
+Flushing stats at  Wed Apr 07 2021 16:08:20 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: {},
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+7 Apr 16:12:04 - [894] reading config file: ./config/config.js
+7 Apr 16:12:04 - server is up INFO
+7 Apr 16:13:54 - [893] reading config file: ./config/config.js
+7 Apr 16:13:54 - server is up INFO
+7 Apr 16:17:26 - [893] reading config file: ./config/config.js
+7 Apr 16:17:26 - server is up INFO
+7 Apr 16:26:26 - [893] reading config file: ./config/config.js
+7 Apr 16:26:27 - server is up INFO
+Flushing stats at  Wed Apr 07 2021 16:36:27 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: {},
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+Flushing stats at  Wed Apr 07 2021 16:46:27 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: { 'statsd.timestamp_lag': 0 },
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+7 Apr 16:55:31 - [866] reading config file: ./config/config.js
+7 Apr 16:55:31 - server is up INFO
+Flushing stats at  Wed Apr 07 2021 17:05:31 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: {},
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+7 Apr 17:12:44 - [866] reading config file: ./config/config.js
+7 Apr 17:12:44 - server is up INFO
+7 Apr 17:14:06 - [868] reading config file: ./config/config.js
+7 Apr 17:14:06 - server is up INFO
+Flushing stats at  Wed Apr 07 2021 17:24:07 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: {},
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+7 Apr 17:30:23 - [866] reading config file: ./config/config.js
+7 Apr 17:30:23 - server is up INFO
+7 Apr 17:38:54 - [868] reading config file: ./config/config.js
+7 Apr 17:38:54 - server is up INFO
+Flushing stats at  Wed Apr 07 2021 17:48:54 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: {},
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+7 Apr 17:53:06 - [896] reading config file: ./config/config.js
+7 Apr 17:53:06 - server is up INFO
+Flushing stats at  Wed Apr 07 2021 18:03:07 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: {},
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+Flushing stats at  Wed Apr 07 2021 18:13:07 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: { 'statsd.timestamp_lag': 0 },
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+7 Apr 18:22:40 - [901] reading config file: ./config/config.js
+7 Apr 18:22:40 - server is up INFO
+Flushing stats at  Wed Apr 07 2021 18:32:40 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: {},
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+Flushing stats at  Wed Apr 07 2021 18:42:40 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: { 'statsd.timestamp_lag': 0 },
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+7 Apr 18:46:32 - [866] reading config file: ./config/config.js
+7 Apr 18:46:32 - server is up INFO
+Flushing stats at  Wed Apr 07 2021 18:56:33 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: {},
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+Flushing stats at  Wed Apr 07 2021 19:06:33 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: { 'statsd.timestamp_lag': 0 },
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+Flushing stats at  Wed Apr 07 2021 19:16:33 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: { 'statsd.timestamp_lag': 0 },
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+Flushing stats at  Wed Apr 07 2021 21:14:40 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: { 'statsd.timestamp_lag': 6487 },
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+7 Apr 21:51:31 - [866] reading config file: ./config/config.js
+7 Apr 21:51:31 - server is up INFO
+7 Apr 21:56:41 - [868] reading config file: ./config/config.js
+7 Apr 21:56:41 - server is up INFO
+7 Apr 22:00:03 - [892] reading config file: ./config/config.js
+7 Apr 22:00:03 - server is up INFO
+7 Apr 22:03:32 - [891] reading config file: ./config/config.js
+7 Apr 22:03:32 - server is up INFO
+Flushing stats at  Wed Apr 07 2021 22:13:33 GMT+0000 (Coordinated Universal Time)
+{ counters:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  timers: {},
+  gauges: {},
+  timer_data: {},
+  counter_rates:
+   { 'statsd.bad_lines_seen': 0,
+     'statsd.packets_received': 0,
+     'statsd.metrics_received': 0 },
+  sets: {},
+  pctThreshold: [ 90 ] }
+7 Apr 22:20:05 - [870] reading config file: ./config/config.js
+7 Apr 22:20:05 - server is up INFO
+7 Apr 22:21:20 - [868] reading config file: ./config/config.js
+7 Apr 22:21:20 - server is up INFO
+7 Apr 22:30:19 - [866] reading config file: ./config/config.js
+7 Apr 22:30:19 - server is up INFO
+7 Apr 22:31:51 - [894] reading config file: ./config/config.js
+7 Apr 22:31:51 - server is up INFO
+7 Apr 22:41:26 - [893] reading config file: ./config/config.js
+7 Apr 22:41:26 - server is up INFO
+7 Apr 22:44:48 - [868] reading config file: ./config/config.js
+7 Apr 22:44:48 - server is up INFO
+7 Apr 22:55:08 - [894] reading config file: ./config/config.js
+7 Apr 22:55:08 - server is up INFO
+7 Apr 22:58:49 - [892] reading config file: ./config/config.js
+7 Apr 22:58:49 - server is up INFO

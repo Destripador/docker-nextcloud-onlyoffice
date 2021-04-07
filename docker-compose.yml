@@ -1,0 +1,119 @@
+version: '2'
+
+######## SERVICES ########
+services:
+
+######## DATABASE SERVICE ########
+  db:
+    image: mariadb
+    container_name: db
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    volumes:
+      - ./db:/var/lib/mysql
+    env_file:
+      - ./config/mariadb/db.env
+    networks:
+      - proxy-tier
+    restart: always
+
+######## NEXTCLOUD SERVICE ########
+  app:    
+    build:     
+     context: .  
+     dockerfile: Dockerfile
+    image: nextcloud:fpm-alpine
+    container_name: nextcloud_fpm
+    links:
+      - db
+    volumes:
+      - ./nextcloud/pagina/web:/var/www/html
+      - ./nextcloud/data:/var/www/html/data
+      - ./nextcloud/apps:/var/www/html/apps
+      - ./nextcloud/custom_apps:/var/www/html/custom_apps
+      - ./nextcloud/config:/var/www/html/config
+      - ./config/nextcloud/php.ini:/usr/local/etc/php/php.ini
+      - ./config/etc/php-fpm.d/www.overloaded.conf:/usr/local/etc/php-fpm.d/www.overloaded.conf
+      - ./config/etc/php/conf.d/nextcloud.ini:/usr/local/etc/php/conf.d/nextcloud.ini
+    env_file:
+      - ./config/nextcloud/config.env
+    networks:
+      - proxy-tier
+    restart: always
+    depends_on:
+      - db
+
+######## WEB SERVICE ########
+  web:
+    image: nginx
+    container_name: nextcloud_web
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    links:
+      - app
+    volumes_from:
+      - app
+    environment:
+      - VIRTUAL_NETWORK=nginx-proxy
+      - VIRTUAL_PORT=80
+    env_file:
+      - ./config/nginx/web.env
+    networks:
+      - proxy-tier
+    restart: always
+    depends_on:
+      - app
+    
+######## PROXY SERVICE ########
+  proxy:
+    image: jwilder/nginx-proxy
+    container_name: proxy
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./config/proxy/conf.d:/etc/nginx/conf.d
+      - ./config/nginx/uploadsize.conf:/etc/nginx/conf.d/uploadsize.conf:ro
+      - ./config/proxy/vhost.d:/etc/nginx/vhost.d
+      - ./config/proxy/html:/usr/share/nginx/html
+      - ./config/proxy/certs:/etc/nginx/certs:ro
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    networks:
+      - proxy-tier
+    restart: always
+    depends_on:
+      - web
+      
+######## LET'S ENCRYPT ########
+
+  letsencrypt-companion:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    container_name: letsencrypt-companion
+    volumes_from:
+      - proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config/proxy/certs:/etc/nginx/certs:rw
+    restart: always
+    depends_on:
+      - proxy
+
+######## ONLYOFICCE ########
+  onlyoffice:
+    container_name: onlyoffice
+    image: onlyoffice/documentserver:latest
+    restart: always
+    networks:
+      - proxy-tier
+    expose:
+      - '80'
+      - '443'
+    volumes:
+      - ./config/onlyoffice/document_data:/var/www/onlyoffice/Data
+      - ./config/onlyoffice/document_log:/var/log/onlyoffice
+      
+
+######## NETWORKS ########
+networks:
+  proxy-tier:
+    external:
+      name: nginx-proxy
