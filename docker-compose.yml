@@ -65,7 +65,7 @@ services:
     
 ######## PROXY SERVICE ########
   proxy:
-    image: jwilder/nginx-proxy
+    image: nginxproxy/nginx-proxy
     container_name: proxy
     ports:
       - 80:80
@@ -77,6 +77,8 @@ services:
       - ./config/proxy/html:/usr/share/nginx/html
       - ./config/proxy/certs:/etc/nginx/certs:ro
       - /var/run/docker.sock:/tmp/docker.sock:ro
+    labels:
+      - "com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy=true"
     networks:
       - proxy-tier
     restart: always
@@ -86,16 +88,18 @@ services:
 ######## LET'S ENCRYPT ########
 
   letsencrypt-companion:
-    image: jrcs/letsencrypt-nginx-proxy-companion
+    image: nginxproxy/acme-companion
     container_name: letsencrypt-companion
     volumes_from:
       - proxy
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./config/proxy/certs:/etc/nginx/certs:rw
+      - ./config/acme:/etc/acme.sh
     restart: always
     depends_on:
       - proxy
+
 
 ######## ONLYOFICCE ########
   onlyoffice:
@@ -110,7 +114,10 @@ services:
     volumes:
       - ./config/onlyoffice/document_data:/var/www/onlyoffice/Data
       - ./config/onlyoffice/document_log:/var/log/onlyoffice
-      
+
+######## Volume #########    
+volumes:
+  certs:
 
 ######## NETWORKS ########
 networks:
