@@ -9,6 +9,7 @@ RUN set -ex; \
         samba-client \
         supervisor \
 #       libreoffice \
+        openjdk7-jre\
     ;
 
 RUN set -ex; \
