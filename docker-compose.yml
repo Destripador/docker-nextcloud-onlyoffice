@@ -101,7 +101,7 @@ services:
       - proxy
 
 
-######## ONLYOFICCE ########
+######## ONLYOFFICE ########
   onlyoffice:
     container_name: onlyoffice
     image: onlyoffice/documentserver:latest
@@ -114,6 +114,31 @@ services:
     volumes:
       - ./config/onlyoffice/document_data:/var/www/onlyoffice/Data
       - ./config/onlyoffice/document_log:/var/log/onlyoffice
+      
+######### REDIS ###########
+  redis:
+    container_name: redis
+    image: 'bitnami/redis:latest'
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    networks:
+      - proxy-tier
+
+###### CFSSL SERVER ########
+#  cfssl:
+#    container_name: cfssl
+#    image: cfssl/cfssl
+#    volumes:
+#      - ./cfssl:/cfssl
+#    working_dir: /cfssl
+#    entrypoint: /bin/bash
+#    networks:
+#      - proxy-tier
+#    expose:
+#      - '8888'
+#    command:
+#      - /cfssl/entrypoint.sh
+
 
 ######## Volume #########    
 volumes:
