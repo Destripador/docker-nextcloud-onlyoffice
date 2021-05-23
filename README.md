@@ -1,4 +1,4 @@
-## Nextcloud + OnlyOffice + Let´s Encrypt + Nginx + Samba + Cron
+## Nextcloud + OnlyOffice + Let´s Encrypt + Nginx + Samba + Cron + Redis + LibreSign
 
 This docker already has everything you need.
 
