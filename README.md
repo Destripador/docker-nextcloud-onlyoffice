@@ -1,56 +1,63 @@
-## Nextcloud + OnlyOffice + Let´s Encrypt + Nginx + Samba + Cron + Redis + LibreSign
+## Nextcloud + OnlyOffice + Let's Encrypt + Nginx + Samba + Cron + Redis + (optional libresign)
 
 This docker already has everything you need.
 
 ## Requirements
 
 * Latest version of docker
-* Docker compose
+* Docker compose 
 
 
-## Installation
+## Facility
 
 1. Clone the most recent version of this repository:
 
-    `` ''
-    git clone https://github.com/Ripper/docker-nextcloud-onlyoffice/
+    ```
+    git clone https://github.com/Destripador/docker-nextcloud-onlyoffice/
     cd docker-onlyoffice-nextcloud
-    `` ''
-2. Change the settings within the ./config folder
+    ```
+2. Change the configurations within the ./config folder, it is important to add the configurations to avoid installation problems.
+    - database configurations
+      ./config/mariadb/db.env
 
-3. Build and download:
+    - Configurations nextcloud
+      ./config/nextcloud/config.env
 
-    `` ''
+    - Let's encrypt
+      ./config/nginx/web.env
+
+
+4. Build and download:
+
+    ```
     docker-compose build --pull
-    `` ''
+    ```
 
-4. Run docker compose:
+5. Run docker compose:
 
-    `` ''
+    ```
     docker-compose up -d
-    `` ''
+    ```
 
-    ** NOTE **: Please wait for the certificates to be generated.
+    **NOTE**: Please wait for the certificates to be generated.
 
-5. Now start the browser and enter the address of the web server. The Nextcloud wizard web page will open. Enter all the necessary data to complete the wizard.
+6. Now launch the browser and enter the web server address or localhost from the same server, Nextcloud wizard web page will open. Enter all necessary data to complete the wizard. 
 
-6. Go to the project folder and run the `set_configuration.sh` script:
+7. Inside the project folder, run `set_config.sh` script:
 
-    ** NOTE **: run the file with ** root ** privileges.
+    **NOTE**: Run the file with **root** privileges.
 
-    `` ''
+    ```
     sudo bash set_config.sh
-    `` ''
-That's it, you already have your own Nextcloud server with onlyoffice included and the SAMBA modules, cron among others, ready to go.
+    ```
+That's all, you now have your own Nextcloud server with onlyoffice included and the SAMBA, cron, and other modules, ready.
 
 [1]: http://dev.onlyoffice.org
 [2]: https://github.com/ONLYOFFICE/DocumentServer
 [3]: http://stackoverflow.com/questions/tagged/onlyoffice
-
-
 ------------------------------------------------------------------------------------------------------------------------------------------------
 
-## Nextcloud + OnlyOffice + Let´s Encrypt + Nginx + Samba + Cron
+## Nextcloud + OnlyOffice + Let´s Encrypt + Nginx + Samba + Cron + Redis + (Opcional libresign)
 
 Este docker ya tiene todo lo que necesitas.
 
@@ -68,15 +75,24 @@ Este docker ya tiene todo lo que necesitas.
     git clone https://github.com/Destripador/docker-nextcloud-onlyoffice/
     cd docker-onlyoffice-nextcloud
     ```
-2. Cambiar las configuraciones dentro de la carpeta ./config
+2. Cambiar las configuraciones dentro de la carpeta ./config, es importante agregar las configuraciones para evitar problemas de instalacion.
+    - configuraciones base de datos
+      ./config/mariadb/db.env
 
-3. Contruir y descargar:
+    - Configurations nextcloud
+      ./config/nextcloud/config.env
+
+    - Lets encrypt
+      ./config/nginx/web.env
+
+
+4. Contruir y descargar:
 
     ```
     docker-compose build --pull
     ```
 
-4. Correr docker compose:
+5. Correr docker compose:
 
     ```
     docker-compose up -d
@@ -84,9 +100,9 @@ Este docker ya tiene todo lo que necesitas.
 
     **NOTA**: espere a que se generen los certificados.
 
-5. Ahora inicie el navegador e ingrese la dirección del servidor web. Se abrirá la página web del asistente de Nextcloud. Ingrese todos los datos necesarios para completar el asistente. 
+6. Ahora inicie el navegador e ingrese la dirección del servidor web o localhost desde el mismo servidor, Se abrirá la página web del asistente de Nextcloud. Ingrese todos los datos necesarios para completar el asistente. 
 
-6. Go to the project folder and run the `set_configuration.sh` script:
+7. Dentro de la carpeta del proyecto, corre `set_config.sh` script:
 
     **NOTA**: ejecute el archivo con privilegios **root**.
 
