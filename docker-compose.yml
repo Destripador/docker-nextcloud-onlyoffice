@@ -5,11 +5,16 @@ services:
 
 ######## DATABASE SERVICE ########
   db:
+    logging:
+     options:
+      max-size: 10m
     image: mariadb
     container_name: db
-    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW --innodb_read_only_compressed=OFF
     volumes:
       - ./db:/var/lib/mysql
+    ports:
+      - 3306:3306
     env_file:
       - ./config/mariadb/db.env
     networks:
@@ -17,17 +22,22 @@ services:
     restart: always
 
 ######## NEXTCLOUD SERVICE ########
-  app:    
-    build:     
-     context: .  
+  app:
+    logging:
+     options:
+      max-size: 10m
+    build:
+     context: .
      dockerfile: Dockerfile
     image: nextcloud:fpm-alpine
     container_name: nextcloud_fpm
     links:
       - db
     volumes:
-      - ./nextcloud/pagina/web:/var/www/html
-      - ./nextcloud/data:/var/www/html/data
+      - ./cfssl:/cfssl
+      - ./cfssl:/opt/cfssl
+      - ./nextcloud/page/web:/var/www/html
+      - ./data:/var/www/html/data
       - ./nextcloud/apps:/var/www/html/apps
       - ./nextcloud/custom_apps:/var/www/html/custom_apps
       - ./nextcloud/config:/var/www/html/config
@@ -44,6 +54,9 @@ services:
 
 ######## WEB SERVICE ########
   web:
+    logging:
+     options:
+      max-size: 10m
     image: nginx
     container_name: nextcloud_web
     volumes:
@@ -62,9 +75,12 @@ services:
     restart: always
     depends_on:
       - app
-    
+
 ######## PROXY SERVICE ########
   proxy:
+    logging:
+     options:
+      max-size: 10m
     image: nginxproxy/nginx-proxy
     container_name: proxy
     ports:
@@ -84,10 +100,12 @@ services:
     restart: always
     depends_on:
       - web
-      
-######## LET'S ENCRYPT ########
 
+######## LET'S ENCRYPT ########
   letsencrypt-companion:
+    logging:
+     options:
+      max-size: 10m
     image: nginxproxy/acme-companion
     container_name: letsencrypt-companion
     volumes_from:
@@ -100,9 +118,11 @@ services:
     depends_on:
       - proxy
 
-
-######## ONLYOFFICE ########
+######## ONLYOFICCE ########
   onlyoffice:
+    logging:
+     options:
+      max-size: 10m
     container_name: onlyoffice
     image: onlyoffice/documentserver:latest
     restart: always
@@ -114,15 +134,6 @@ services:
     volumes:
       - ./config/onlyoffice/document_data:/var/www/onlyoffice/Data
       - ./config/onlyoffice/document_log:/var/log/onlyoffice
-      
-######### REDIS ###########
-  redis:
-    container_name: redis
-    image: 'bitnami/redis:latest'
-    environment:
-      - ALLOW_EMPTY_PASSWORD=yes
-    networks:
-      - proxy-tier
 
 ###### CFSSL SERVER ########
 #  cfssl:
@@ -132,15 +143,29 @@ services:
 #      - ./cfssl:/cfssl
 #    working_dir: /cfssl
 #    entrypoint: /bin/bash
+#    ports:
+#      - 8888:8888
 #    networks:
 #      - proxy-tier
 #    expose:
 #      - '8888'
 #    command:
 #      - /cfssl/entrypoint.sh
+#
+######### REDIS ###########
+  redis:
+    logging:
+     options:
+      max-size: 10m
+    container_name: redis
+    image: 'bitnami/redis:latest'
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    networks:
+      - proxy-tier
+    restart: always
 
-
-######## Volume #########    
+######## Volume #########
 volumes:
   certs:
 
