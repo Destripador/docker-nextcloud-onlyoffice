@@ -1,5 +1,7 @@
 FROM nextcloud:fpm-alpine
 
+RUN mkdir -p /usr/share/man/man1
+
 RUN set -ex; \
     \
     apk add --no-cache \
@@ -8,9 +10,11 @@ RUN set -ex; \
         procps \
         samba-client \
         supervisor \
-#       libreoffice \
-        openjdk7-jre\
+        libreoffice \
+#       openjdk7-jre\
     ;
+
+#RUN cp -r /var/www/html/prueba/jsignpdf /opt\;
 
 RUN set -ex; \
     \
@@ -27,6 +31,7 @@ RUN set -ex; \
     docker-php-ext-install \
         bz2 \
         imap \
+        mysqli\
     ; \
     pecl install smbclient; \
     docker-php-ext-enable smbclient; \
