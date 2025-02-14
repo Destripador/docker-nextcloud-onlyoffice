@@ -92,7 +92,7 @@ Don't forget to verify the connection with the server from the OnlyOffice module
 
 Below is a reference image for the server configuration:
 
-![Server Configuration](https://raw.githubusercontent.com/Destripador/docker-nextcloud-onlyoffice/main/img/server-setup.png)
+![Server Configuration](https://raw.githubusercontent.com/Destripador/docker-nextcloud-onlyoffice/refs/heads/main/img/onlyoffice.conf.png)
 
 If you have any questions or issues, check the OnlyOffice and Nextcloud documentation:
 
