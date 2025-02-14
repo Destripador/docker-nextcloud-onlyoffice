@@ -92,7 +92,7 @@ Don't forget to verify the connection with the server from the OnlyOffice module
 
 Below is a reference image for the server configuration:
 
-![Server Configuration](./img/server-setup.png)
+![Server Configuration](https://raw.githubusercontent.com/Destripador/docker-nextcloud-onlyoffice/main/img/server-setup.png)
 
 If you have any questions or issues, check the OnlyOffice and Nextcloud documentation:
 
@@ -101,7 +101,15 @@ If you have any questions or issues, check the OnlyOffice and Nextcloud document
 - [Frequently Asked Questions on Stack Overflow](http://stackoverflow.com/questions/tagged/onlyoffice)
 
 
+
+
+
 -----------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------
+
+
+
 
 # Nextcloud + OnlyOffice + Let's Encrypt + Nginx + Samba + Cron + Redis + (Opcional: LibreSign)
 
@@ -183,12 +191,14 @@ Tu servidor Nextcloud con OnlyOffice, Samba, Cron, Redis y más está instalado 
 De ser necesario, configura el servicio de only office, este contenedor ya esta preparado para auto configurarse, pero si es requerido cambiar la contraseña de
 conexion con onlyoffice, modifica el docker-compose.yml
 
-######## ONLYOFICCE ########
+```yaml
+######## ONLYOFFICE ########
     environment:
       JWT_ENABLED: 'true'
       JWT_SECRET: 'SuperSecretPasskeyThatNoOneKnows'
       JWT_HEADER: 'AuthorizationJwt'
       JWT_IN_BODY: 'true'
+```
 
 cambiando JWT_SECRET que es la llave con la que se conecta de manera automatica.
 
@@ -197,8 +207,7 @@ no olvides verificar la conexion con el servido desde el modulo de onlyoffice en
 
 A continuación, se muestra una imagen de referencia para la configuración del servidor:
 
-![Configuración del servidor](./img/server-setup.png)
-
+![Server Configuration](https://raw.githubusercontent.com/Destripador/docker-nextcloud-onlyoffice/main/img/server-setup.png)
 
 
 Si tienes dudas o problemas, revisa la documentación de OnlyOffice y Nextcloud:
