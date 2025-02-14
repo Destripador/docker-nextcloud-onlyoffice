@@ -207,7 +207,7 @@ no olvides verificar la conexion con el servido desde el modulo de onlyoffice en
 
 A continuación, se muestra una imagen de referencia para la configuración del servidor:
 
-![Server Configuration](https://raw.githubusercontent.com/Destripador/docker-nextcloud-onlyoffice/main/img/server-setup.png)
+![Server Configuration](https://raw.githubusercontent.com/Destripador/docker-nextcloud-onlyoffice/refs/heads/main/img/onlyoffice.conf.png)
 
 
 Si tienes dudas o problemas, revisa la documentación de OnlyOffice y Nextcloud:
