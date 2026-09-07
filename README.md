@@ -1,218 +1,305 @@
-# Nextcloud + OnlyOffice + Let's Encrypt + Nginx + Samba + Cron + Redis + (Optional: LibreSign)
+# Nextcloud + OnlyOffice con Docker Compose
 
-This Docker setup includes everything needed to deploy a Nextcloud server with OnlyOffice, SSL certificate with Let's Encrypt, Nginx as a reverse proxy, Samba for file sharing, Cron for scheduled tasks, and Redis for performance improvement. Additionally, you can optionally add LibreSign for document signing.
+Stack público para ejecutar Nextcloud FPM detrás de Nginx y `nginx-proxy`, con
+MariaDB, Redis, OnlyOffice Document Server y certificados ACME opcionales. La
+imagen de Nextcloud se construye localmente para añadir Samba, LibreOffice,
+FFmpeg, ImageMagick, `bz2` y la extensión PHP `smbclient`.
 
----
+> [!IMPORTANT]
+> Este repositorio define infraestructura con estado. Revise el Compose y cree
+> backups restaurables antes de cambiar una instalación existente. Nunca use
+> `docker compose down -v` sobre datos que quiera conservar.
 
-## Requirements
+`compose.yaml` es la fuente canónica. `docker-compose.yml` es un enlace
+simbólico temporal para flujos antiguos; consulte
+[la guía de transición](docs/migration-compose.md).
 
-* Latest version of **Docker**
-* **Docker Compose**
+## Componentes
 
----
+| Servicio | Función | Exposición predeterminada |
+| --- | --- | --- |
+| `db` | MariaDB | Solo red interna `backend` |
+| `redis` | Caché y locking con contraseña | Solo red interna `backend` |
+| `app` | Nextcloud PHP-FPM y cron bajo Supervisor | Sin puerto de host |
+| `web` | Nginx para estáticos, FastCGI y `/ds-vpath/` | A través de `proxy` |
+| `proxy` | Entrada HTTP/HTTPS mediante nginx-proxy | Puertos 80 y 443 |
+| `onlyoffice` | Document Server con JWT | A través de `/ds-vpath/` |
+| `acme` | Certificados mediante acme-companion | Perfil Compose `acme` |
 
-## Installation
+El stack usa tres redes:
 
-### 1. Clone the latest repository
+- `backend`, interna, para MariaDB, Redis y Nextcloud;
+- `app-tier`, para Nextcloud, Nginx y OnlyOffice, con salida a Internet;
+- `proxy-tier`, red externa compartida por Nginx, nginx-proxy y ACME.
 
-```sh
-  git clone https://github.com/Destripador/docker-nextcloud-onlyoffice/
-  cd docker-nextcloud-onlyoffice
-```
+Solo existe un mecanismo de cron: `/cron.sh` administrado por Supervisor dentro
+de `app`. No añada otro servicio cron sin retirar primero ese programa.
 
-### 2. Configure the necessary files
+## Versiones de referencia
 
-Before proceeding with the installation, it is **important** to configure the files inside the `./config` folder to avoid issues.
+`.env.example` fija un conjunto explícito revisado el 7 de septiembre de 2026:
 
-- **Database configurations**
-  - File: `./config/mariadb/db.env`
+| Componente | Referencia |
+| --- | --- |
+| Nextcloud base | `nextcloud:34.0.3-fpm-alpine` |
+| MariaDB | `mariadb:11.8.9` |
+| Redis | `redis:7.4.11-alpine` |
+| Nginx | `nginx:1.30.4-alpine` |
+| nginx-proxy | `nginxproxy/nginx-proxy:1.11.6` |
+| acme-companion | `nginxproxy/acme-companion:2.8.2` |
+| OnlyOffice | `onlyoffice/documentserver:9.4.0.1` |
 
-- **Nextcloud configurations**
-  - File: `./config/nextcloud/config.env`
+Estas referencias tienen disponibilidad documental comprobada, pero el conjunto
+completo no se construyó ni desplegó durante esta actualización. Antes de usarlo
+en producción, compruebe los tags, revise las notas de versión y ejecute las
+pruebas pendientes descritas en [limitaciones](docs/known-limitations.md).
+Nextcloud 34 admite MariaDB 10.6, 10.11, 11.4 y 11.8 según sus
+[requisitos oficiales](https://docs.nextcloud.com/server/stable/admin_manual/installation/system_requirements.html).
 
-- **Let's Encrypt configurations**
-  - File: `./config/nginx/web.env`
-
-> ⚠️ **IMPORTANT:** Verify and customize these configurations before continuing.
-
-### 3. Build and pull Docker images
-
-Run the following command to build and pull the necessary images:
-
-```sh
-  docker-compose build --pull
-```
-
-### 4. Start the containers with Docker Compose
-
-```sh
-  docker-compose up -d
-```
-
-> **Note:** Wait for the SSL certificates to be generated before continuing.
-
-### 5. Access the Nextcloud web interface
-
-Open a web browser and enter the address of the web server (or `localhost` if you are on the same machine). The Nextcloud installation wizard will open.
-
-Follow the wizard steps and enter the necessary information to complete the installation.
-
-### 6. Run the configuration script
-
-Inside the project folder, run the `set_config.sh` script to complete the configuration.
-
-> ⚠️ **Run this file with root privileges:**
-
-```sh
-  sudo bash set_config.sh
-```
-
----
-
-## Done!
-
-Your Nextcloud server with OnlyOffice, Samba, Cron, Redis, and more is installed and ready to use. 🎉
-
-### 7. Configure OnlyOffice
-
-If necessary, configure the OnlyOffice service. This container is already prepared to auto-configure, but if you need to change the connection password with OnlyOffice, modify the `docker-compose.yml`.
-
-```yaml
-######## ONLYOFFICE ########
-    environment:
-      JWT_ENABLED: 'true'
-      JWT_SECRET: 'SuperSecretPasskeyThatNoOneKnows'
-      JWT_HEADER: 'AuthorizationJwt'
-      JWT_IN_BODY: 'true'
-```
-
-Change `JWT_SECRET` which is the key used for automatic connection.
-
-Don't forget to verify the connection with the server from the OnlyOffice module in Nextcloud.
-
-Below is a reference image for the server configuration:
-
-![Server Configuration](https://raw.githubusercontent.com/Destripador/docker-nextcloud-onlyoffice/refs/heads/main/img/onlyoffice.conf.png)
-
-If you have any questions or issues, check the OnlyOffice and Nextcloud documentation:
-
-- [OnlyOffice Developers](http://dev.onlyoffice.org)
-- [DocumentServer Repository on GitHub](https://github.com/ONLYOFFICE/DocumentServer)
-- [Frequently Asked Questions on Stack Overflow](http://stackoverflow.com/questions/tagged/onlyoffice)
-
-
-
-
-
------------------------------------------------------------------------------------------------------------------------------------
------------------------------------------------------------------------------------------------------------------------------------
------------------------------------------------------------------------------------------------------------------------------------
-
-
-
-
-# Nextcloud + OnlyOffice + Let's Encrypt + Nginx + Samba + Cron + Redis + (Opcional: LibreSign)
-
-Este Docker ya incluye todo lo necesario para desplegar un servidor Nextcloud con OnlyOffice, certificado SSL con Let's Encrypt, Nginx como proxy inverso, Samba para compartir archivos, Cron para tareas programadas y Redis para mejorar el rendimiento. Además, puedes añadir opcionalmente LibreSign para la firma de documentos.
-
----
+No cambie de versión mayor sustituyendo solo un tag. Siga la ruta de actualización
+soportada de cada componente y conserve un rollback basado en restauración.
 
 ## Requisitos
 
-* Última versión de **Docker**
-* **Docker Compose**
+- Linux de 64 bits con Docker Engine y Docker Compose V2; se recomienda Compose
+  2.20 o posterior.
+- Git, Bash 4+, OpenSSL y `jq` para los scripts auxiliares.
+- DNS público, NAT/firewall TCP 80 y 443 y una dirección de correo válida si usa
+  el desafío ACME HTTP-01.
+- RAM y almacenamiento adecuados. OnlyOffice es el componente más pesado; mida
+  el consumo con su carga real.
+- Una ubicación definitiva para el checkout: todos los datos usan bind mounts
+  relativos al directorio del proyecto.
 
----
-
-## Instalación
-
-### 1. Clonar el repositorio más reciente
-
-```sh
-  git clone https://github.com/Destripador/docker-nextcloud-onlyoffice/
-  cd docker-nextcloud-onlyoffice
-```
-
-### 2. Configurar los archivos necesarios
-
-Antes de proceder con la instalación, es **importante** configurar los archivos dentro de la carpeta `./config` para evitar problemas.
-
-- **Configuraciones de la base de datos**
-  - Archivo: `./config/mariadb/db.env`
-
-- **Configuraciones de Nextcloud**
-  - Archivo: `./config/nextcloud/config.env`
-
-- **Configuraciones de Let's Encrypt**
-  - Archivo: `./config/nginx/web.env`
-
-> ⚠️ **IMPORTANTE:** Verifica y personaliza estas configuraciones antes de continuar.
-
-### 3. Construir y descargar las imágenes Docker
-
-Ejecuta el siguiente comando para construir y descargar las imágenes necesarias:
+Compruebe las herramientas sin iniciar servicios:
 
 ```sh
-  docker-compose build --pull
+docker version
+docker compose version
 ```
 
-### 4. Iniciar los contenedores con Docker Compose
+## Instalación desde un clon limpio
+
+### 1. Clonar y crear la configuración privada
 
 ```sh
-  docker-compose up -d
+git clone https://github.com/Destripador/docker-nextcloud-onlyoffice.git
+cd docker-nextcloud-onlyoffice
+umask 077
+cp .env.example .env
+chmod 600 .env
 ```
 
-> **Nota:** Espera a que se generen los certificados SSL antes de continuar.
-
-### 5. Acceder a la interfaz web de Nextcloud
-
-Abre un navegador web e ingresa la dirección del servidor web (o `localhost` si estás en la misma máquina). Se abrirá el asistente de instalación de Nextcloud.
-
-Sigue los pasos del asistente e ingresa los datos necesarios para completar la instalación.
-
-### 6. Ejecutar el script de configuración
-
-Dentro de la carpeta del proyecto, ejecuta el script `set_config.sh` para completar la configuración.
-
-> ⚠️ **Ejecuta este archivo con privilegios root:**
+Edite `.env`, sustituya el dominio y el correo, y complete todos los secretos
+vacíos. Compose se niega a renderizar mientras falte alguno.
+Genere valores distintos para cada secreto, por ejemplo:
 
 ```sh
-  sudo bash set_config.sh
+openssl rand -hex 32
 ```
 
----
+No pegue secretos en el Compose, un issue, capturas o comandos que queden en el
+historial del shell. El mapa completo de variables está en
+[docs/configuration.md](docs/configuration.md).
 
-## ¡Listo!
+### 2. Preparar persistencia y red
 
-Tu servidor Nextcloud con OnlyOffice, Samba, Cron, Redis y más está instalado y listo para usarse. 🎉
-
-
-### 5. Configura Onlyoffice
-De ser necesario, configura el servicio de only office, este contenedor ya esta preparado para auto configurarse, pero si es requerido cambiar la contraseña de
-conexion con onlyoffice, modifica el docker-compose.yml
-
-```yaml
-######## ONLYOFFICE ########
-    environment:
-      JWT_ENABLED: 'true'
-      JWT_SECRET: 'SuperSecretPasskeyThatNoOneKnows'
-      JWT_HEADER: 'AuthorizationJwt'
-      JWT_IN_BODY: 'true'
+```sh
+mkdir -p \
+  db data \
+  nextcloud/page/web nextcloud/apps nextcloud/custom_apps nextcloud/config \
+  config/proxy/conf.d config/proxy/vhost.d config/proxy/html config/proxy/certs \
+  config/acme config/redis/data \
+  config/onlyoffice/document_data config/onlyoffice/document_log \
+  config/onlyoffice/document_cache config/onlyoffice/example_files \
+  config/onlyoffice/fonts
 ```
 
-cambiando JWT_SECRET que es la llave con la que se conecta de manera automatica.
+El nombre de la red externa debe coincidir con `NGINX_PROXY_NETWORK`. Créela una
+sola vez y únicamente si aún no existe:
 
-no olvides verificar la conexion con el servido desde el modulo de onlyoffice en nextcloud.
+```sh
+docker network inspect nginx-proxy >/dev/null 2>&1 || docker network create nginx-proxy
+```
 
+Si cambia el nombre en `.env`, use ese mismo nombre en ambos comandos.
 
-A continuación, se muestra una imagen de referencia para la configuración del servidor:
+### 3. Configurar DNS y HTTPS
 
-![Server Configuration](https://raw.githubusercontent.com/Destripador/docker-nextcloud-onlyoffice/refs/heads/main/img/onlyoffice.conf.png)
+Haga que el registro A y, si corresponde, AAAA de `NEXTCLOUD_DOMAIN` resuelva al
+host. Permita tráfico entrante TCP 80/443 y confirme que ningún otro proceso usa
+los puertos configurados. Si publica directamente un puerto HTTPS distinto de
+443, ajústelo también en `NEXTCLOUD_TRUSTED_DOMAINS`,
+`NEXTCLOUD_OVERWRITE_HOST` y `NEXTCLOUD_PUBLIC_URL`.
 
+El ejemplo activa ACME mediante `COMPOSE_PROFILES=acme`. Para terminar TLS en
+otro proxy, deje esa variable vacía, ajuste `NEXTCLOUD_OVERWRITE_PROTOCOL` y
+documente su propia cadena de proxies confiables. Detalles:
+[docs/configuration.md](docs/configuration.md#dominio-proxy-y-tls).
 
-Si tienes dudas o problemas, revisa la documentación de OnlyOffice y Nextcloud:
+### 4. Validar, construir e iniciar
 
-- [OnlyOffice Developers](http://dev.onlyoffice.org)
-- [Repositorio de DocumentServer en GitHub](https://github.com/ONLYOFFICE/DocumentServer)
-- [Preguntas frecuentes en Stack Overflow](http://stackoverflow.com/questions/tagged/onlyoffice)
+Valide primero la base y después la combinación efectiva. El segundo comando
+incluye automáticamente `compose.override.yaml` si existe:
 
+```sh
+docker compose -f compose.yaml config --quiet
+docker compose config --quiet
+docker compose config --services
+```
+
+Revise el resultado sin publicar la salida completa, porque la configuración
+expandida contiene secretos. Luego construya la imagen derivada y arranque:
+
+```sh
+docker compose build app
+docker compose up -d
+docker compose ps
+```
+
+Esos dos últimos pasos modifican el runtime. Ejecútelos solo después de revisar
+el plan y las copias de seguridad. Esta actualización del repositorio no los
+ejecutó.
+
+### 5. Acceso inicial y OnlyOffice
+
+Abra `https://` seguido de `NEXTCLOUD_DOMAIN`. Las variables de `.env` realizan
+la instalación inicial de Nextcloud cuando el volumen está vacío. Una vez que
+Nextcloud responda:
+
+1. instale y habilite la app oficial **ONLYOFFICE** desde Nextcloud;
+2. revise el riesgo de `allow_local_remote_servers` descrito en
+   [configuración](docs/configuration.md#integración-de-onlyoffice);
+3. configure el conector de forma explícita:
+
+```sh
+bash set_config.sh --apply \
+  --public-url https://cloud.example.com \
+  --allow-local-remote-servers
+```
+
+Sustituya la URL por su dominio. El script usa el Compose efectivo, no instala
+apps, no imprime el JWT y se niega a actuar sin las dos confirmaciones. Pruebe
+después la creación y edición de un documento; un healthcheck del contenedor no
+demuestra por sí solo que la integración funcione extremo a extremo.
+
+## Comprobaciones y administración
+
+El diagnóstico es de solo lectura:
+
+```sh
+bash scripts/doctor.sh
+```
+
+También puede usar:
+
+```sh
+docker compose ps -a
+docker compose logs --tail=200 SERVICIO
+docker compose logs --tail=200 --follow SERVICIO
+docker compose exec --user www-data app php occ status
+```
+
+Los logs pueden contener nombres, direcciones y URLs. Redáctelos antes de
+compartirlos. Comandos habituales:
+
+```sh
+docker compose stop SERVICIO
+docker compose start SERVICIO
+docker compose restart SERVICIO
+```
+
+No use `down -v`: elimina volúmenes Docker y puede destruir estado. En este
+repositorio la mayor parte de la persistencia son bind mounts, que tampoco se
+restauran con un simple rollback de Git.
+
+## Persistencia
+
+| Ruta | Contenido principal |
+| --- | --- |
+| `db/` | Directorio de datos de MariaDB |
+| `data/` | Archivos de usuarios de Nextcloud |
+| `nextcloud/page/web/` | Árbol `/var/www/html` |
+| `nextcloud/apps/` | Apps incluidas persistidas |
+| `nextcloud/custom_apps/` | Apps instaladas o personalizadas |
+| `nextcloud/config/` | Configuración viva de Nextcloud |
+| `config/redis/data/` | Persistencia de Redis |
+| `config/proxy/` | Configuración generada, desafíos y certificados |
+| `config/acme/` | Cuenta y estado de acme.sh |
+| `config/onlyoffice/` | Datos, logs, caché, archivos de ejemplo y fuentes |
+| `.env` | Versiones, dominio y secretos de Compose |
+
+Todos estos paths son locales e ignorados por Git. Mantenga el checkout y los
+bind mounts en la misma ubicación o adapte un override antes de moverlos.
+
+## Personalización con overrides
+
+```sh
+cp compose.override.example.yaml compose.override.yaml
+```
+
+`compose.override.yaml` está ignorado. Compose lo combina automáticamente al
+ejecutar `docker compose` desde la raíz sin `-f`. Si usa `-f`, debe indicar todos
+los archivos en orden:
+
+```sh
+docker compose -f compose.yaml -f compose.override.yaml config --quiet
+```
+
+Use overrides para puertos de mantenimiento, límites, mounts o una imagen local;
+no cambie la base pública ni reutilice nombres de servicio de otro servidor.
+
+## Dockge
+
+Dockge debe administrar el mismo directorio que contiene `compose.yaml`, `.env`,
+los overrides y los bind mounts. No copie solo el YAML ni cambie la ruta de una
+instalación con datos. Para una instalación nueva, clone el repositorio dentro
+del directorio de stacks configurado en Dockge y prepare `.env` antes de escanear.
+
+La imagen `NEXTCLOUD_APP_IMAGE` es local y requiere una construcción deliberada.
+No use **Update**, **Pull all** o **Rebuild with pull** como rutina. Consulte la
+[guía de Dockge](docs/dockge.md).
+
+## Actualización, backup y restauración
+
+Antes de cambiar cualquier referencia de imagen:
+
+1. guarde el Compose efectivo, `.env` por un canal cifrado y las referencias de
+   imagen;
+2. obtenga un dump consistente de MariaDB y una copia coordinada de los datos;
+3. verifique hashes y restaure el backup en un entorno aislado;
+4. revise las notas de Nextcloud, MariaDB, OnlyOffice y la imagen base;
+5. valide Compose, construya y pruebe fuera de producción;
+6. aplique un componente durante una ventana de mantenimiento.
+
+Un downgrade de archivos no revierte una migración de base de datos. No habilite
+actualizaciones automáticas de MariaDB ni salte versiones mayores. Procedimiento:
+[docs/backup-restore.md](docs/backup-restore.md).
+
+## Documentación
+
+- [Configuración y secretos](docs/configuration.md)
+- [Dockge](docs/dockge.md)
+- [Transición desde docker-compose.yml](docs/migration-compose.md)
+- [Backup y restauración](docs/backup-restore.md)
+- [Diagnóstico y problemas frecuentes](docs/troubleshooting.md)
+- [Limitaciones y pruebas pendientes](docs/known-limitations.md)
+
+## Seguridad antes de publicar un fork
+
+- No rastree `.env`, datos, dumps, claves privadas, certificados, logs ni
+  overrides locales.
+- Revise tanto el índice como el historial; `.gitignore` no borra commits
+  anteriores.
+- Rote cualquier contraseña o JWT que haya aparecido en un commit o captura.
+- El socket Docker montado en proxy y ACME equivale a un privilegio elevado.
+- Mantenga MariaDB y Redis sin puertos públicos.
+
+El historial de este proyecto incluyó material que puede haber expuesto un JWT y
+archivos de entorno. El candidato actual los retira, pero la rotación y una posible
+limpieza de historial son decisiones administrativas separadas y aún pendientes.
+
+## Licencia
+
+Revise las licencias de este repositorio y de cada imagen antes de redistribuir
+una instalación o imagen derivada.

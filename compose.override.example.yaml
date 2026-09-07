@@ -1,0 +1,25 @@
+# Copie este archivo como compose.override.yaml para ajustes locales. Compose lo
+# combina automáticamente con compose.yaml cuando no se usa la opción -f.
+services:
+  db:
+    environment:
+      # Ajuste neutro para que una copia sin cambios siga siendo válida.
+      TZ: "${TZ:-UTC}"
+
+    # Ejemplo: publicar MariaDB solo en loopback para mantenimiento temporal.
+    # No lo habilite de forma permanente ni exponga el puerto a Internet.
+    # ports:
+    #   - "127.0.0.1:${MARIADB_HOST_PORT:-3306}:3306"
+
+  app:
+    environment:
+      TZ: "${TZ:-UTC}"
+
+    # Ejemplo: añadir configuración PHP local sin editar la base pública.
+    # volumes:
+    #   - ./config/local/php.ini:/usr/local/etc/php/conf.d/zz-local.ini:ro
+
+    # Para una imagen local distinta, cambie NEXTCLOUD_APP_IMAGE en .env y
+    # descomente un Dockerfile que exista únicamente en su entorno.
+    # build:
+    #   dockerfile: Dockerfile.custom.local

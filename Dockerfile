@@ -1,57 +1,49 @@
-FROM nextcloud:fpm-alpine
+# La imagen base es obligatoria y debe incluir la variante FPM Alpine.
+ARG NEXTCLOUD_IMAGE
+FROM ${NEXTCLOUD_IMAGE}
 
-RUN mkdir -p /usr/share/man/man1
+ARG SMBCLIENT_VERSION=1.1.2
 
-RUN set -ex; \
-    \
+USER root
+
+RUN set -eux; \
+    mkdir -p /usr/share/man/man1; \
     apk add --no-cache \
         ffmpeg \
         imagemagick \
+        libreoffice \
         procps \
         samba-client \
-        supervisor \
-        libreoffice \
-#       openjdk7-jre\
-    ;
+        supervisor
 
-#RUN cp -r /var/www/html/prueba/jsignpdf /opt\;
-
-RUN set -ex; \
-    \
+RUN set -eux; \
     apk add --no-cache --virtual .build-deps \
         $PHPIZE_DEPS \
-        imap-dev \
-        krb5-dev \
-        openssl-dev \
-        samba-dev \
         bzip2-dev \
-    ; \
-    \
-    docker-php-ext-configure imap --with-kerberos --with-imap-ssl; \
-    docker-php-ext-install \
+        samba-dev; \
+    docker-php-ext-install -j"$(nproc)" \
         bz2 \
-        imap \
-        mysqli\
-    ; \
-    pecl install smbclient; \
+        mysqli; \
+    pecl install "smbclient-${SMBCLIENT_VERSION}"; \
     docker-php-ext-enable smbclient; \
-    \
     runDeps="$( \
         scanelf --needed --nobanner --format '%n#p' --recursive /usr/local/lib/php/extensions \
             | tr ',' '\n' \
             | sort -u \
             | awk 'system("[ -e /usr/local/lib/" $1 " ]") == 0 { next } { print "so:" $1 }' \
     )"; \
-    apk add --virtual .nextcloud-phpext-rundeps $runDeps; \
+    apk add --no-cache --virtual .nextcloud-phpext-rundeps ${runDeps}; \
     apk del .build-deps
 
-RUN mkdir -p \
-    /var/log/supervisord \
-    /var/run/supervisord \
-;
+RUN set -eux; \
+    mkdir -p \
+        /var/log/supervisord \
+        /var/run/supervisord
 
-COPY supervisord.conf /
+COPY supervisord.conf /supervisord.conf
 
+# Se reemplaza el CMD oficial, pero se conserva su entrypoint. Esta variable
+# mantiene la inicialización/actualización antes de que Supervisor arranque FPM.
 ENV NEXTCLOUD_UPDATE=1
 
 CMD ["/usr/bin/supervisord", "-c", "/supervisord.conf"]

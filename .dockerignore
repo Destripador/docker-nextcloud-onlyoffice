@@ -1,0 +1,6 @@
+# El Dockerfile solo usa estos archivos del contexto local. Esta allowlist evita
+# enviar bases de datos, datos de Nextcloud, certificados, secretos y .git al daemon.
+**
+!Dockerfile
+!supervisord.conf
+!.dockerignore
