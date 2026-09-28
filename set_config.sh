@@ -69,7 +69,7 @@ command -v docker >/dev/null 2>&1 || {
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 cd -- "$script_dir"
-compose=(docker compose --project-directory "$script_dir")
+compose=(docker compose --project-directory "$script_dir" -f "$script_dir/compose.yaml")
 
 "${compose[@]}" version >/dev/null
 "${compose[@]}" config --quiet
