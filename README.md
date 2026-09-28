@@ -50,10 +50,10 @@ de `app`. No añada otro servicio cron sin retirar primero ese programa.
 | acme-companion | `nginxproxy/acme-companion:2.8.2` |
 | OnlyOffice | `onlyoffice/documentserver:9.4.0.1` |
 
-Estas referencias tienen disponibilidad documental comprobada, pero el conjunto
-completo no se construyó ni desplegó durante esta actualización. Antes de usarlo
-en producción, compruebe los tags, revise las notas de versión y ejecute las
-pruebas pendientes descritas en [limitaciones](docs/known-limitations.md).
+Estas referencias forman el conjunto de trabajo actual del proyecto y han sido
+validadas en un despliegue real durante el desarrollo de esta rama. Antes de
+usarlo en otra instalación de producción, revise las notas de versión y complete
+las pruebas del [checklist de release](docs/release-checklist.md).
 Nextcloud 34 admite MariaDB 10.6, 10.11, 11.4 y 11.8 según sus
 [requisitos oficiales](https://docs.nextcloud.com/server/stable/admin_manual/installation/system_requirements.html).
 
@@ -78,6 +78,15 @@ Compruebe las herramientas sin iniciar servicios:
 docker version
 docker compose version
 ```
+
+## Estado de la rama
+
+La rama de desarrollo está en fase de cierre para `v1.0.0-rc1`: no se planean
+más funciones antes del candidato de release. El trabajo restante es validar
+instalación limpia, backup/restore y el checklist final en entornos desechables.
+
+Consulte [CHANGELOG.md](CHANGELOG.md) y
+[docs/release-checklist.md](docs/release-checklist.md).
 
 ## Instalación rápida recomendada
 
