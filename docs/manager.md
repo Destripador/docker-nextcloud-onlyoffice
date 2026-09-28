@@ -23,6 +23,10 @@ La primera versión permite:
 - consultar la salida de la última actualización;
 - editar de forma segura una allowlist de parámetros no sensibles de `.env`;
 - consultar si los secretos esperados están configurados sin revelar su valor;
+- listar usuarios de Nextcloud y consultar su detalle mediante OCC;
+- habilitar/deshabilitar usuarios con confirmación textual, protegiendo la cuenta administrativa inicial;
+- listar apps habilitadas/deshabilitadas y cambiar su estado mediante OCC;
+- bloquear la desactivación desde el panel de apps consideradas esenciales;
 - consultar las últimas 250 líneas de logs por servicio;
 - administrar únicamente contenedores con la etiqueta
   `com.docker.compose.project` que coincide con este stack.
@@ -221,3 +225,20 @@ solo se indica si están configurados.
 Guardar configuración no recrea contenedores. Después de revisar los cambios,
 use la vista **Actualizar** para aplicar las referencias y variables actuales al
 runtime con el flujo seguro ya existente.
+
+
+## Usuarios y apps de Nextcloud
+
+La vista **Usuarios** usa `occ user:list` y `occ user:info`. Las acciones
+mutables disponibles son `user:enable` y `user:disable`; requieren escribir
+exactamente el UID antes de ejecutar el cambio. La cuenta indicada por
+`NEXTCLOUD_ADMIN_USER` no puede deshabilitarse desde el panel.
+
+La vista **Apps** usa `occ app:list`, `app:enable` y `app:disable`. Cada
+cambio requiere escribir exactamente el ID de la app. El panel mantiene una
+lista conservadora de apps protegidas (por ejemplo `files`, `settings`,
+`provisioning_api`, `oauth2`, `theming`) que no pueden deshabilitarse desde
+la interfaz.
+
+Estas acciones también quedan bloqueadas durante backup o update para evitar
+cambios concurrentes sobre Nextcloud.
