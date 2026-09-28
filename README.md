@@ -391,6 +391,7 @@ actualizaciones automáticas de MariaDB ni salte versiones mayores. Procedimient
 
 ## Documentación
 
+- [Instalador guiado](docs/installer.md)
 - [Configuración y secretos](docs/configuration.md)
 - [Preflight de instalación](docs/preflight.md)
 - [Dockge](docs/dockge.md)
