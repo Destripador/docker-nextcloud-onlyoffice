@@ -38,6 +38,7 @@ El instalador:
 - construye la imagen de Nextcloud;
 - inicia los servicios;
 - espera healthchecks cuando Compose soporta `--wait`;
+- si OnlyOffice está activo, instala y habilita automáticamente la app conectora y aplica su configuración;
 - ejecuta `scripts/doctor.sh` de forma silenciosa cuando todo está bien;
 - muestra un resumen simple por componente;
 - solo imprime el diagnóstico técnico completo cuando algo falla;
@@ -178,9 +179,16 @@ bash scripts/preflight.sh
 bash scripts/doctor.sh
 ```
 
-## Limitación actual de OnlyOffice
+## OnlyOffice automático
 
-El preset con OnlyOffice inicia Document Server y valida su healthcheck, pero la
-app conectora de ONLYOFFICE dentro de Nextcloud todavía se configura como paso
-posterior mediante `set_config.sh`. La automatización completa de ese paso es
-una fase posterior del instalador.
+Cuando el perfil `onlyoffice` está activo, el instalador también instala o
+habilita la app ONLYOFFICE en Nextcloud y aplica automáticamente la configuración
+necesaria para enlazarla con Document Server.
+
+Si la descarga de la app desde Nextcloud App Store falla, Nextcloud permanece
+funcionando y el instalador muestra el error para reintentar únicamente esa
+integración más tarde con `set_config.sh`.
+
+Para desarrollo local, `set_config.sh` admite una URL pública HTTP; en
+producción se mantiene HTTPS.
+
