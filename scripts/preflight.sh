@@ -130,7 +130,7 @@ case $arch in
     *) warn "Arquitectura $arch no validada por este repositorio" ;;
 esac
 
-for required_command in git openssl jq; do
+for required_command in git openssl; do
     if command -v "$required_command" >/dev/null 2>&1; then
         version=$("$required_command" --version 2>/dev/null | head -n 1 || true)
         ok "$required_command disponible${version:+: $version}"
@@ -138,6 +138,13 @@ for required_command in git openssl jq; do
         error "Falta comando requerido: $required_command"
     fi
 done
+
+if command -v jq >/dev/null 2>&1; then
+    version=$(jq --version 2>/dev/null | head -n 1 || true)
+    ok "jq disponible${version:+: $version}"
+else
+    warn 'jq no está disponible; doctor.sh omitirá algunas comprobaciones estructurales avanzadas'
+fi
 
 docker_ready=false
 compose_ready=false
