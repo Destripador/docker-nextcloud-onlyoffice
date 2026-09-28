@@ -162,6 +162,7 @@ case "${1:-}" in
     [[ -n $(env_value MANAGER_BIND_ADDRESS) ]] || set_env MANAGER_BIND_ADDRESS 127.0.0.1
     [[ -n $(env_value MANAGER_PORT) ]] || set_env MANAGER_PORT 8090
     [[ -n $(env_value MANAGER_COOKIE_SECURE) ]] || set_env MANAGER_COOKIE_SECURE false
+    set_env MANAGER_PROJECT_HOST_PATH "$root"
 
     echo "[INFO] Construyendo e iniciando panel administrativo..."
     "${compose[@]}" up -d --build manager
