@@ -110,8 +110,19 @@ set_env MANAGER_BIND_ADDRESS 127.0.0.1
 set_env MANAGER_PORT 8090
 set_env MANAGER_PROJECT_HOST_PATH /tmp/nextcloud-ci
 
-python -m py_compile manager/app.py manager/backup_job.py manager/update_job.py
-ok 'Sintaxis Python del manager'
+python_cmd=
+if command -v python3 >/dev/null 2>&1; then
+    python_cmd=python3
+elif command -v python >/dev/null 2>&1; then
+    python_cmd=python
+fi
+
+if [[ -n $python_cmd ]]; then
+    "$python_cmd" -m py_compile manager/app.py manager/backup_job.py manager/update_job.py
+    ok 'Sintaxis Python del manager'
+else
+    printf '[WARN] Python no está instalado en el host; se omite py_compile local. GitHub Actions lo valida.\n'
+fi
 
 for profiles in '' onlyoffice acme manager onlyoffice,manager acme,onlyoffice,manager; do
     COMPOSE_PROFILES="$profiles" docker compose         --project-directory "$root"         --env-file "$tmp_env"         -f "$root/compose.yaml"         config --quiet
