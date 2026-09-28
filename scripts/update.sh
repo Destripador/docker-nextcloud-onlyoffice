@@ -116,7 +116,9 @@ maintenance_enabled=true
 mapfile -t services < <("${compose[@]}" config --services)
 pull_services=()
 for service in "${services[@]}"; do
-    [[ $service == app ]] && continue
+    case $service in
+        app|manager) continue ;;
+    esac
     pull_services+=("$service")
 done
 
@@ -128,11 +130,17 @@ fi
 printf '[INFO] Reconstruyendo imagen Nextcloud con su base configurada...\n'
 "${compose[@]}" build --pull app
 
-printf '[INFO] Recreando stack...\n'
+printf '[INFO] Recreando stack principal...\n'
+runtime_services=()
+for service in "${services[@]}"; do
+    [[ $service == manager ]] && continue
+    runtime_services+=("$service")
+done
+
 if "${compose[@]}" up --help 2>/dev/null | grep -q -- '--wait'; then
-    "${compose[@]}" up -d --wait --wait-timeout 600
+    "${compose[@]}" up -d --wait --wait-timeout 600 "${runtime_services[@]}"
 else
-    "${compose[@]}" up -d
+    "${compose[@]}" up -d "${runtime_services[@]}"
 fi
 
 printf '[INFO] Esperando a que Nextcloud responda por OCC...\n'
