@@ -445,37 +445,106 @@ if [[ $config_valid == true && $docker_ready == true ]]; then
     fi
     unset proxy_container_id
 
-    if is_running app && is_running web && nextcloud_status=$(run_timeout 15 "${compose[@]}" exec -T app php -r '
-        $context = stream_context_create(["http" => ["timeout" => 5, "ignore_errors" => true]]);
-        $body = @file_get_contents("http://web/status.php", false, $context);
-        $status = $http_response_header[0] ?? "";
-        $data = json_decode((string)$body, true);
-        if ($body === false || !preg_match("~^HTTP/\\S+\\s+200(?:\\s|$)~", $status)
-            || !is_array($data) || !array_key_exists("installed", $data)) { exit(1); }
-        echo json_encode(["installed" => (bool)$data["installed"]]);
-    ' 2>/dev/null) && grep -Eq '"installed"[[:space:]]*:[[:space:]]*true' <<< "$nextcloud_status"; then
+    printf '[INFO] Comprobando status.php interno...\n'
+    app_container_id=$("${compose[@]}" ps --status running --quiet app 2>/dev/null | head -n 1)
+    if is_running app && is_running web && [[ -n $app_container_id ]] \
+        && nextcloud_status=$(run_timeout 10 docker exec "$app_container_id" php -r '
+            $context = stream_context_create(["http" => ["timeout" => 4, "ignore_errors" => true]]);
+            $body = @file_get_contents("http://web/status.php", false, $context);
+            $status = $http_response_header[0] ?? "";
+            $data = json_decode((string)$body, true);
+            if ($body === false || !preg_match("~^HTTP/\\S+\\s+200(?:\\s|$)~", $status)
+                || !is_array($data) || !array_key_exists("installed", $data)) { exit(1); }
+            echo json_encode(["installed" => (bool)$data["installed"]]);
+        ' 2>/dev/null) \
+        && grep -Eq '"installed"[[:space:]]*:[[:space:]]*true' <<< "$nextcloud_status"; then
         ok 'Nextcloud status.php interno'
     else
         error 'Nextcloud: web/status.php interno no responde correctamente'
     fi
+    unset app_container_id nextcloud_status
 
+    printf '[INFO] Comprobando Redis...\n'
     if is_running redis; then
-        redis_result=$(run_timeout 10 "${compose[@]}" exec -T redis sh -ec \
-            'export REDISCLI_AUTH="$REDIS_PASSWORD"; exec redis-cli ping' 2>/dev/null || true)
-        redis_result=${redis_result//$'\r'/}
-        redis_result=${redis_result//$'\n'/}
+        redis_container_id=$("${compose[@]}" ps --status running --quiet redis 2>/dev/null | head -n 1)
+        redis_result=
+        if [[ -n $redis_container_id ]]; then
+            redis_result=$(run_timeout 8 docker exec "$redis_container_id" sh -ec \
+                'export REDISCLI_AUTH="$REDIS_PASSWORD"; exec redis-cli ping' 2>/dev/null || true)
+        fi
+        redis_result=${redis_result//fi
+
+if disk_line=$(df -Pk "$project_dir" 2>/dev/null | awk 'NR == 2 { print $4 "|" $5 }'); then
+    available_kb=${disk_line%%|*}
+    used_percent=${disk_line##*|}
+    used_percent=${used_percent%%%}
+    available_human=$(df -hP "$project_dir" 2>/dev/null | awk 'NR == 2 { print $4 }')
+    if [[ $used_percent =~ ^[0-9]+$ ]] && ((used_percent >= 90)); then
+        error "Filesystem: ${available_human:-?} libres, $used_percent% usado"
+    elif [[ $used_percent =~ ^[0-9]+$ ]] && ((used_percent >= 80)); then
+        warn "Filesystem: ${available_human:-?} libres, $used_percent% usado"
+    elif [[ $available_kb =~ ^[0-9]+$ ]]; then
+        ok "Filesystem: ${available_human:-?} libres, ${used_percent:-?}% usado"
+    else
+        warn 'Filesystem: no se pudo interpretar el espacio disponible'
+    fi
+else
+    error 'Filesystem: no se pudo consultar el espacio disponible'
+fi
+
+if ((error_count > 0)); then
+    printf '[ERROR] Resumen: %d OK, %d WARN, %d ERROR\n' \
+        "$ok_count" "$warn_count" "$error_count"
+    exit 1
+fi
+
+printf '[OK] Resumen: %d OK, %d WARN, 0 ERROR\n' "$ok_count" "$warn_count"
+\r'/}
+        redis_result=${redis_result//fi
+
+if disk_line=$(df -Pk "$project_dir" 2>/dev/null | awk 'NR == 2 { print $4 "|" $5 }'); then
+    available_kb=${disk_line%%|*}
+    used_percent=${disk_line##*|}
+    used_percent=${used_percent%%%}
+    available_human=$(df -hP "$project_dir" 2>/dev/null | awk 'NR == 2 { print $4 }')
+    if [[ $used_percent =~ ^[0-9]+$ ]] && ((used_percent >= 90)); then
+        error "Filesystem: ${available_human:-?} libres, $used_percent% usado"
+    elif [[ $used_percent =~ ^[0-9]+$ ]] && ((used_percent >= 80)); then
+        warn "Filesystem: ${available_human:-?} libres, $used_percent% usado"
+    elif [[ $available_kb =~ ^[0-9]+$ ]]; then
+        ok "Filesystem: ${available_human:-?} libres, ${used_percent:-?}% usado"
+    else
+        warn 'Filesystem: no se pudo interpretar el espacio disponible'
+    fi
+else
+    error 'Filesystem: no se pudo consultar el espacio disponible'
+fi
+
+if ((error_count > 0)); then
+    printf '[ERROR] Resumen: %d OK, %d WARN, %d ERROR\n' \
+        "$ok_count" "$warn_count" "$error_count"
+    exit 1
+fi
+
+printf '[OK] Resumen: %d OK, %d WARN, 0 ERROR\n' "$ok_count" "$warn_count"
+\n'/}
         [[ $redis_result == PONG ]] && ok 'Redis' || error 'Redis: no responde PONG'
+        unset redis_container_id redis_result
     else
         error 'Redis: servicio detenido'
     fi
 
     if has_service onlyoffice; then
-        if is_running onlyoffice && run_timeout 20 "${compose[@]}" exec -T onlyoffice \
-            curl -fsS --max-time 8 http://127.0.0.1:8000/info/info.json >/dev/null 2>&1; then
+        printf '[INFO] Comprobando OnlyOffice...\n'
+        onlyoffice_container_id=$("${compose[@]}" ps --status running --quiet onlyoffice 2>/dev/null | head -n 1)
+        if is_running onlyoffice && [[ -n $onlyoffice_container_id ]] \
+            && run_timeout 10 docker exec "$onlyoffice_container_id" \
+                curl -fsS --max-time 6 http://127.0.0.1:8000/info/info.json >/dev/null 2>&1; then
             ok 'OnlyOffice'
         else
             error 'OnlyOffice: perfil activo pero servicio detenido o healthcheck fallido'
         fi
+        unset onlyoffice_container_id
     else
         ok 'OnlyOffice omitido; no se ejecuta healthcheck'
     fi
