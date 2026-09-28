@@ -92,6 +92,7 @@ done
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 cd -- "$script_dir"
+compose=(docker compose --project-directory "$script_dir" -f "$script_dir/compose.yaml")
 
 say() { printf '%s\n' "$*"; }
 ok() { printf '[OK] %s\n' "$*"; }
@@ -185,7 +186,7 @@ for command_name in docker openssl awk mktemp; do
     command -v "$command_name" >/dev/null 2>&1 || die "Falta el comando requerido: $command_name"
 done
 docker info >/dev/null 2>&1 || die 'Docker está instalado, pero el daemon no está accesible.'
-docker compose version >/dev/null 2>&1 || die 'Se requiere Docker Compose V2.'
+"${compose[@]}" version >/dev/null 2>&1 || die 'Se requiere Docker Compose V2.'
 
 if [[ -z $mode ]]; then
     [[ $have_tty == true ]] || die 'En modo no interactivo use --dev, --dev-full, --production o --custom.'
@@ -341,11 +342,11 @@ if [[ $existing_install == true ]]; then
         exit 0
     fi
 
-    info 'Iniciando OnlyOffice...'
-    if docker compose up --help 2>/dev/null | grep -q -- '--wait'; then
-        docker compose up -d --wait --wait-timeout 300 onlyoffice
+    info 'Asegurando Nextcloud y OnlyOffice en ejecución...'
+    if "${compose[@]}" up --help 2>/dev/null | grep -q -- '--wait'; then
+        "${compose[@]}" up -d --wait --wait-timeout 300 app web onlyoffice
     else
-        docker compose up -d onlyoffice
+        "${compose[@]}" up -d app web onlyoffice
     fi
 
     public_url=$(env_value NEXTCLOUD_PUBLIC_URL)
@@ -503,13 +504,13 @@ if [[ $no_start == true ]]; then
 fi
 
 info 'Construyendo la imagen de Nextcloud...'
-docker compose build app
+"${compose[@]}" build app
 
 info 'Iniciando servicios...'
-if docker compose up --help 2>/dev/null | grep -q -- '--wait'; then
-    docker compose up -d --wait --wait-timeout 300
+if "${compose[@]}" up --help 2>/dev/null | grep -q -- '--wait'; then
+    "${compose[@]}" up -d --wait --wait-timeout 300
 else
-    docker compose up -d
+    "${compose[@]}" up -d
 fi
 
 ok 'Contenedores iniciados.'
