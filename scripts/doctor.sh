@@ -93,11 +93,11 @@ if [[ -f $env_file ]]; then
 
     required_env_vars=(
         NEXTCLOUD_BASE_IMAGE NEXTCLOUD_APP_IMAGE MARIADB_IMAGE REDIS_IMAGE
-        NGINX_IMAGE NGINX_PROXY_IMAGE ACME_COMPANION_IMAGE ONLYOFFICE_IMAGE
+        NGINX_IMAGE NGINX_PROXY_IMAGE ACME_COMPANION_IMAGE
         NEXTCLOUD_DOMAIN NEXTCLOUD_TRUSTED_DOMAINS NEXTCLOUD_OVERWRITE_HOST
         NEXTCLOUD_PUBLIC_URL MYSQL_DATABASE MYSQL_USER MYSQL_PASSWORD
         MYSQL_ROOT_PASSWORD NEXTCLOUD_ADMIN_USER NEXTCLOUD_ADMIN_PASSWORD
-        REDIS_PASSWORD ONLYOFFICE_JWT_SECRET
+        REDIS_PASSWORD
     )
     invalid_env=0
     for env_name in "${required_env_vars[@]}"; do
@@ -114,6 +114,24 @@ if [[ -f $env_file ]]; then
     fi
 
     compose_profiles=$(env_value COMPOSE_PROFILES)
+    onlyoffice_profile=false
+    if [[ ,$compose_profiles, == *,onlyoffice,* ]]; then
+        onlyoffice_profile=true
+        onlyoffice_image=$(env_value ONLYOFFICE_IMAGE)
+        onlyoffice_jwt=$(env_value ONLYOFFICE_JWT_SECRET)
+        if [[ -z $onlyoffice_image || $onlyoffice_image == CHANGE_ME* ]]; then
+            error 'OnlyOffice está activo, pero ONLYOFFICE_IMAGE está vacío o conserva un placeholder'
+        fi
+        if [[ ! $onlyoffice_jwt =~ ^[0-9A-Fa-f]{64,}$ ]]; then
+            error 'OnlyOffice está activo, pero ONLYOFFICE_JWT_SECRET debe contener al menos 64 caracteres hexadecimales'
+        else
+            ok 'OnlyOffice activo con JWT no trivial'
+        fi
+        unset onlyoffice_image onlyoffice_jwt
+    else
+        ok 'OnlyOffice deshabilitado por perfil'
+    fi
+
     if [[ ,$compose_profiles, == *,acme,* ]]; then
         acme_email=$(env_value ACME_EMAIL)
         if [[ -z $acme_email || $acme_email == *@example.com ]]; then
@@ -203,13 +221,18 @@ fi
 
 if [[ $config_valid == true ]]; then
     missing_services=0
-    for required_service in db redis app web proxy onlyoffice; do
+    for required_service in db redis app web proxy; do
         if ! has_service "$required_service"; then
             error "Compose: falta el servicio público requerido $required_service"
             ((missing_services += 1))
         fi
     done
-    ((missing_services == 0)) && ok 'Servicios públicos requeridos presentes'
+    ((missing_services == 0)) && ok 'Servicios base requeridos presentes'
+    if has_service onlyoffice; then
+        ok 'Perfil OnlyOffice activo'
+    else
+        ok 'Perfil OnlyOffice no activo'
+    fi
 
     if has_service cron; then
         error 'Compose define un servicio cron adicional; el mecanismo público único es Supervisor en app'
@@ -247,8 +270,8 @@ if [[ $config_valid == true ]]; then
             and ((.services.redis.networks | keys) == ["backend"])
             and (.services.app.networks | has("backend") and has("app-tier"))
             and (.services.web.networks | has("app-tier") and has("proxy-tier"))
-            and ((.services.onlyoffice.networks | keys) == ["app-tier"])
             and ((.services.proxy.networks | keys) == ["proxy-tier"])
+            and ((.services | has("onlyoffice") | not) or ((.services.onlyoffice.networks | keys) == ["app-tier"]))
         ' >/dev/null <<< "$config_json"; then
             ok 'Redes públicas segmentadas'
         else
@@ -263,13 +286,23 @@ if [[ $config_valid == true ]]; then
         fi
 
         if jq -e '
-            (.services.redis.environment.REDIS_PASSWORD
-                | type == "string" and test("^[0-9A-Fa-f]{64,}$"))
-            and (.services.onlyoffice.environment.JWT_SECRET | type == "string" and length >= 32 and (startswith("CHANGE_ME") | not))
+            .services.redis.environment.REDIS_PASSWORD
+            | type == "string" and test("^[0-9A-Fa-f]{64,}$")
         ' >/dev/null <<< "$config_json"; then
-            ok 'Redis y OnlyOffice tienen secretos no triviales'
+            ok 'Redis tiene un secreto no trivial'
         else
-            error 'Redis u OnlyOffice tienen un secreto ausente, corto o de ejemplo'
+            error 'Redis tiene un secreto ausente, corto o inválido'
+        fi
+
+        if jq -e '.services | has("onlyoffice")' >/dev/null <<< "$config_json"; then
+            if jq -e '
+                .services.onlyoffice.environment.JWT_SECRET
+                | type == "string" and test("^[0-9A-Fa-f]{64,}$")
+            ' >/dev/null <<< "$config_json"; then
+                ok 'JWT de OnlyOffice válido en el Compose efectivo'
+            else
+                error 'Perfil OnlyOffice activo con JWT ausente, corto o inválido'
+            fi
         fi
 
         mapfile -t external_networks < <(jq -r '.networks[] | select(.external == true) | .name' <<< "$config_json")
@@ -351,7 +384,7 @@ if [[ $config_valid == true && $docker_ready == true ]]; then
         fi
     fi
 
-        if is_running app; then
+    if is_running app; then
         if occ_status=$(run_timeout 20 "${compose[@]}" exec -T --user www-data app \
             php occ status --output=json --no-ansi --no-interaction 2>/dev/null); then
             if grep -Eq '"installed"[[:space:]]*:[[:space:]]*true' <<< "$occ_status"; then
@@ -386,7 +419,7 @@ if [[ $config_valid == true && $docker_ready == true ]]; then
         fi
     fi
 
-        if is_running proxy && run_timeout 15 "${compose[@]}" exec -T proxy nginx -t >/dev/null 2>&1; then
+    if is_running proxy && run_timeout 15 "${compose[@]}" exec -T proxy nginx -t >/dev/null 2>&1; then
         ok 'nginx-proxy'
     else
         error 'nginx-proxy: detenido o configuración inválida'
