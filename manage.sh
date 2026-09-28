@@ -21,6 +21,8 @@ Comandos:
   rebuild         Reconstruye la imagen de Nextcloud y recrea app/web
   onlyoffice-on   Activa OnlyOffice en una instalación existente
   onlyoffice-off  Detiene OnlyOffice y lo quita del perfil activo
+  manager-on      Activa el panel web administrativo local
+  manager-off     Detiene el panel y lo quita del perfil activo
   refresh         Reaplica las imágenes actuales sin cambiar versiones
   update          Actualización segura con backup obligatorio
 EOF
@@ -127,6 +129,73 @@ case "${1:-}" in
     set_env COMPOSE_PROFILES "$new_profiles"
     "${compose[@]}" stop onlyoffice >/dev/null 2>&1 || true
     echo "[OK] OnlyOffice desactivado. La app de Nextcloud permanece instalada."
+    echo "[INFO] Copia de .env: $backup"
+    ;;
+  manager-on)
+    command -v openssl >/dev/null 2>&1 || { echo "[ERROR] OpenSSL no está disponible" >&2; exit 1; }
+    profiles=$(env_value COMPOSE_PROFILES)
+    case ",$profiles," in
+      *,manager,*) ;;
+      *)
+        if [[ -z $profiles ]]; then
+          set_env COMPOSE_PROFILES manager
+        else
+          set_env COMPOSE_PROFILES "$profiles,manager"
+        fi
+        ;;
+    esac
+
+    manager_password=$(env_value MANAGER_ADMIN_PASSWORD)
+    generated_manager_password=false
+    if [[ ${#manager_password} -lt 12 ]]; then
+      manager_password=$(openssl rand -hex 16)
+      set_env MANAGER_ADMIN_PASSWORD "$manager_password"
+      generated_manager_password=true
+    fi
+
+    manager_secret=$(env_value MANAGER_SECRET_KEY)
+    if [[ ${#manager_secret} -lt 32 ]]; then
+      set_env MANAGER_SECRET_KEY "$(openssl rand -hex 32)"
+    fi
+
+    [[ -n $(env_value MANAGER_ADMIN_USER) ]] || set_env MANAGER_ADMIN_USER admin
+    [[ -n $(env_value MANAGER_BIND_ADDRESS) ]] || set_env MANAGER_BIND_ADDRESS 127.0.0.1
+    [[ -n $(env_value MANAGER_PORT) ]] || set_env MANAGER_PORT 8090
+    [[ -n $(env_value MANAGER_COOKIE_SECURE) ]] || set_env MANAGER_COOKIE_SECURE false
+
+    echo "[INFO] Construyendo e iniciando panel administrativo..."
+    "${compose[@]}" up -d --build manager
+    manager_bind=$(env_value MANAGER_BIND_ADDRESS)
+    manager_port=$(env_value MANAGER_PORT)
+    manager_user=$(env_value MANAGER_ADMIN_USER)
+    echo "[OK] Panel administrativo iniciado."
+    echo "[INFO] URL: http://${manager_bind:-127.0.0.1}:${manager_port:-8090}"
+    echo "[INFO] Usuario: ${manager_user:-admin}"
+    if [[ $generated_manager_password == true ]]; then
+      echo "[INFO] Contraseña generada: $manager_password"
+      echo "[INFO] Guárdala ahora; permanece en .env y no se vuelve a mostrar automáticamente."
+    fi
+    unset manager_password manager_secret
+    ;;
+  manager-off)
+    profiles=$(env_value COMPOSE_PROFILES)
+    "${compose[@]}" stop manager >/dev/null 2>&1 || true
+    new_profiles=$(printf '%s' "$profiles" | awk -F, '
+      {
+        out=""
+        for (i=1; i<=NF; i++) {
+          gsub(/^[[:space:]]+|[[:space:]]+$/, "", $i)
+          if ($i == "" || $i == "manager") continue
+          out = out (out == "" ? "" : ",") $i
+        }
+        print out
+      }')
+    backup=".env.bak.$(date +%Y%m%d-%H%M%S)"
+    cp .env "$backup"
+    chmod 600 "$backup"
+    set_env COMPOSE_PROFILES "$new_profiles"
+    echo "[OK] Panel administrativo detenido y perfil manager desactivado."
+    echo "[INFO] Los secretos del panel permanecen en .env."
     echo "[INFO] Copia de .env: $backup"
     ;;
   refresh)
