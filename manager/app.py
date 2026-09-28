@@ -100,21 +100,76 @@ def health_of(container):
     return health or "none"
 
 
-def nextcloud_status():
+def exec_check(service, command, user=None):
     try:
-        container = service_container("app")
+        container = service_container(service)
+        container.reload()
         if container.status != "running":
-            return None
-        result = container.exec_run(
-            ["php", "occ", "status", "--output=json", "--no-ansi", "--no-interaction"],
-            user="www-data",
-            demux=False,
-        )
-        if result.exit_code != 0:
-            return None
-        return json.loads(result.output.decode("utf-8", errors="replace"))
-    except (DockerException, ValueError, json.JSONDecodeError):
+            return False, "servicio detenido"
+        result = container.exec_run(command, user=user, demux=False)
+        output = result.output.decode("utf-8", errors="replace").strip()
+        return result.exit_code == 0, output
+    except (APIError, DockerException, NotFound) as exc:
+        return False, str(exc)
+
+
+def nextcloud_status():
+    ok, output = exec_check(
+        "app",
+        ["php", "occ", "status", "--output=json", "--no-ansi", "--no-interaction"],
+        user="www-data",
+    )
+    if not ok:
         return None
+    try:
+        return json.loads(output)
+    except (ValueError, json.JSONDecodeError):
+        return None
+
+
+def diagnostics():
+    checks = []
+
+    def add(name, ok, detail):
+        checks.append({"name": name, "ok": bool(ok), "detail": detail})
+
+    ok, output = exec_check(
+        "db",
+        ["sh", "-ec", 'mariadb -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -Nse "SELECT 1"'],
+    )
+    add("MariaDB", ok and output.splitlines()[-1:] == ["1"], output or "sin respuesta")
+
+    ok, output = exec_check(
+        "redis",
+        ["sh", "-ec", 'export REDISCLI_AUTH="$REDIS_PASSWORD"; redis-cli ping'],
+    )
+    add("Redis", ok and output == "PONG", output or "sin respuesta")
+
+    ok, output = exec_check("web", ["nginx", "-t"])
+    add("Nginx Nextcloud", ok, output or ("configuración válida" if ok else "sin respuesta"))
+
+    ok, output = exec_check("proxy", ["nginx", "-t"])
+    add("nginx-proxy", ok, output or ("configuración válida" if ok else "sin respuesta"))
+
+    nc = nextcloud_status()
+    add(
+        "Nextcloud OCC",
+        bool(nc and nc.get("installed")),
+        f"versión {nc.get('versionstring') or nc.get('version')}" if nc else "occ status no respondió correctamente",
+    )
+
+    try:
+        service_container("onlyoffice")
+    except NotFound:
+        add("OnlyOffice", True, "perfil no creado")
+    else:
+        ok, output = exec_check(
+            "onlyoffice",
+            ["curl", "-fsS", "--max-time", "6", "http://127.0.0.1:8000/info/info.json"],
+        )
+        add("OnlyOffice", ok, "Document Server responde" if ok else (output or "sin respuesta"))
+
+    return checks
 
 
 @app.after_request
@@ -195,6 +250,38 @@ def dashboard():
         nc=nextcloud_status(),
         project=PROJECT,
     )
+
+
+@app.get("/diagnostics")
+@login_required
+def diagnostics_view():
+    checks = diagnostics()
+    passed = sum(1 for check in checks if check["ok"])
+    return render_template(
+        "diagnostics.html",
+        checks=checks,
+        passed=passed,
+        total=len(checks),
+        project=PROJECT,
+    )
+
+
+@app.post("/nextcloud/maintenance/<state>")
+@login_required
+def maintenance_action(state):
+    require_csrf()
+    if state not in {"on", "off"}:
+        abort(404)
+    ok, output = exec_check(
+        "app",
+        ["php", "occ", "maintenance:mode", f"--{state}", "--no-ansi", "--no-interaction"],
+        user="www-data",
+    )
+    if ok:
+        flash(f"Modo mantenimiento {state}.", "success")
+    else:
+        flash(f"No se pudo cambiar modo mantenimiento: {output}", "error")
+    return redirect(url_for("dashboard"))
 
 
 @app.post("/service/<service>/<action>")
