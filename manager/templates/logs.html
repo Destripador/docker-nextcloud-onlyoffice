@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Logs {{ name }} · Stack Manager{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Logs · {{ name }}</h1>
+    <p class="muted">Últimas 250 líneas.</p>
+  </div>
+  <a class="button ghost" href="{{ url_for('dashboard') }}">Volver</a>
+</div>
+<pre class="logs">{{ content }}</pre>
+{% endblock %}

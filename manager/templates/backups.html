@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Backups · Stack Manager{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Backups</h1>
+    <p class="muted">Copias consistentes creadas por <code>scripts/backup.sh</code>.</p>
+  </div>
+  <a class="button ghost" href="{{ url_for('dashboard') }}">Volver</a>
+</div>
+
+<section class="backup-summary">
+  <div>
+    <strong>Estado</strong>
+    {% if backup_state.state == 'running' %}
+      <span class="pill warn">En ejecución</span>
+    {% elif backup_state.state == 'success' %}
+      <span class="pill ok">Último correcto</span>
+    {% elif backup_state.state == 'failed' %}
+      <span class="pill bad">Último falló</span>
+    {% else %}
+      <span class="pill">Sin tarea activa</span>
+    {% endif %}
+  </div>
+  <form method="post" action="{{ url_for('backup_create') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" {% if backup_state.state == 'running' %}disabled{% endif %}>Crear backup</button>
+  </form>
+</section>
+
+<section class="backup-list">
+  {% for backup in backups %}
+  <article class="backup-row">
+    <div>
+      <strong>{{ backup.name }}</strong>
+      <p class="muted">{{ backup.size }} · {{ 'estructura completa' if backup.complete else 'incompleto' }}</p>
+    </div>
+    <div class="actions">
+      {% if backup.complete %}
+      <form method="post" action="{{ url_for('backup_verify', name=backup.name) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="ghost" type="submit">Verificar hashes</button>
+      </form>
+      {% endif %}
+    </div>
+  </article>
+  {% else %}
+  <div class="notice">Todavía no hay backups en <code>backups/</code>.</div>
+  {% endfor %}
+</section>
+
+{% if log_tail %}
+<section class="notice">
+  <strong>Salida del último backup</strong>
+  <pre class="logs compact">{{ log_tail }}</pre>
+</section>
+{% endif %}
+
+<section class="notice">
+  <strong>Restauración</strong>
+  <p>Restore continúa deshabilitado en la interfaz web. Use el procedimiento documentado y pruebe la restauración en un entorno aislado antes de aplicarla sobre una instalación.</p>
+</section>
+{% endblock %}

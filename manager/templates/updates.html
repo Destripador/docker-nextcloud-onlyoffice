@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Actualización · Stack Manager{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Actualización</h1>
+    <p class="muted">Aplica únicamente las referencias que ya están definidas en <code>.env</code>.</p>
+  </div>
+  <a class="button ghost" href="{{ url_for('dashboard') }}">Volver</a>
+</div>
+
+<section class="backup-summary">
+  <div>
+    <strong>Estado</strong>
+    {% if update_state.state == 'running' %}
+      <span class="pill warn">En ejecución</span>
+    {% elif update_state.state == 'success' %}
+      <span class="pill ok">Última correcta</span>
+    {% elif update_state.state == 'failed' %}
+      <span class="pill bad">Última falló</span>
+    {% else %}
+      <span class="pill">Sin tarea activa</span>
+    {% endif %}
+  </div>
+  {% if active_operation and active_operation != 'update' %}
+    <span class="muted">Operación activa: {{ active_operation }}</span>
+  {% endif %}
+</section>
+
+<section class="card update-card">
+  <h2>Referencias configuradas</h2>
+  <p class="muted">El panel no cambia versiones ni tags. Solo muestra y aplica los valores actuales.</p>
+  <dl class="refs">
+    {% for key, value in refs.items() %}
+      <div><dt>{{ key }}</dt><dd><code>{{ value or '—' }}</code></dd></div>
+    {% endfor %}
+  </dl>
+</section>
+
+<section class="notice danger-zone">
+  <strong>Aplicar actualización</strong>
+  <p>Este flujo ejecuta preflight, crea un backup obligatorio, activa mantenimiento, descarga las imágenes configuradas, reconstruye Nextcloud, recrea el stack principal, ejecuta <code>occ upgrade</code> si hace falta y termina con diagnóstico.</p>
+  <p><strong>No realiza rollback automático</strong> si una migración falla. El backup previo es la ruta de recuperación.</p>
+
+  <form method="post" action="{{ url_for('update_apply') }}" class="confirm-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>
+      Para confirmar escriba <strong>ACTUALIZAR</strong>
+      <input name="confirmation" autocomplete="off" {% if active_operation %}disabled{% endif %} required>
+    </label>
+    <button class="danger" type="submit" {% if active_operation %}disabled{% endif %}>Aplicar referencias actuales</button>
+  </form>
+</section>
+
+{% if log_tail %}
+<section class="notice">
+  <strong>Salida de la última actualización</strong>
+  <pre class="logs compact">{{ log_tail }}</pre>
+</section>
+{% endif %}
+{% endblock %}

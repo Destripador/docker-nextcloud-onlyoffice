@@ -1,0 +1,254 @@
+name: ${COMPOSE_PROJECT_NAME:-nextcloud}
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  db:
+    image: "${MARIADB_IMAGE:?Defina MARIADB_IMAGE en .env}"
+    command:
+      - --transaction-isolation=READ-COMMITTED
+      - --binlog-format=ROW
+    environment:
+      MYSQL_DATABASE: "${MYSQL_DATABASE:?Defina MYSQL_DATABASE en .env}"
+      MYSQL_USER: "${MYSQL_USER:?Defina MYSQL_USER en .env}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD:?Defina MYSQL_PASSWORD en .env}"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:?Defina MYSQL_ROOT_PASSWORD en .env}"
+      TZ: "${TZ:-UTC}"
+    volumes:
+      - ./db:/var/lib/mysql
+    networks:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+
+  redis:
+    image: "${REDIS_IMAGE:?Defina REDIS_IMAGE en .env}"
+    command:
+      - sh
+      - -ec
+      - |
+        case "$$REDIS_PASSWORD" in
+          ""|*[!0-9A-Fa-f]*)
+            echo 'REDIS_PASSWORD debe contener al menos 64 caracteres hexadecimales' >&2
+            exit 1
+            ;;
+        esac
+        if [ "$${#REDIS_PASSWORD}" -lt 64 ]; then
+          echo 'REDIS_PASSWORD debe contener al menos 64 caracteres hexadecimales' >&2
+          exit 1
+        fi
+        umask 077
+        printf 'requirepass %s\n' "$$REDIS_PASSWORD" > /tmp/redis.conf
+        exec redis-server /tmp/redis.conf
+    environment:
+      REDIS_PASSWORD: "${REDIS_PASSWORD:?Defina REDIS_PASSWORD en .env}"
+      TZ: "${TZ:-UTC}"
+    volumes:
+      - ./config/redis/data:/data
+    networks:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -qx PONG']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    logging: *default-logging
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXTCLOUD_IMAGE: "${NEXTCLOUD_BASE_IMAGE:?Defina NEXTCLOUD_BASE_IMAGE en .env}"
+    image: "${NEXTCLOUD_APP_IMAGE:?Defina NEXTCLOUD_APP_IMAGE en .env}"
+    environment:
+      MYSQL_DATABASE: "${MYSQL_DATABASE:?Defina MYSQL_DATABASE en .env}"
+      MYSQL_USER: "${MYSQL_USER:?Defina MYSQL_USER en .env}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD:?Defina MYSQL_PASSWORD en .env}"
+      MYSQL_HOST: db
+      REDIS_HOST: redis
+      REDIS_HOST_PASSWORD: "${REDIS_PASSWORD:?Defina REDIS_PASSWORD en .env}"
+      NEXTCLOUD_ADMIN_USER: "${NEXTCLOUD_ADMIN_USER:?Defina NEXTCLOUD_ADMIN_USER en .env}"
+      NEXTCLOUD_ADMIN_PASSWORD: "${NEXTCLOUD_ADMIN_PASSWORD:?Defina NEXTCLOUD_ADMIN_PASSWORD en .env}"
+      NEXTCLOUD_TRUSTED_DOMAINS: "${NEXTCLOUD_TRUSTED_DOMAINS:?Defina NEXTCLOUD_TRUSTED_DOMAINS en .env}"
+      OVERWRITEHOST: "${NEXTCLOUD_OVERWRITE_HOST:?Defina NEXTCLOUD_OVERWRITE_HOST en .env}"
+      OVERWRITEPROTOCOL: "${NEXTCLOUD_OVERWRITE_PROTOCOL:-https}"
+      OVERWRITECLIURL: "${NEXTCLOUD_PUBLIC_URL:?Defina NEXTCLOUD_PUBLIC_URL en .env}"
+      PHP_MEMORY_LIMIT: "${PHP_MEMORY_LIMIT:-1024M}"
+      PHP_UPLOAD_LIMIT: "${PHP_UPLOAD_LIMIT:-10G}"
+      TZ: "${TZ:-UTC}"
+    volumes:
+      - ./nextcloud/page/web:/var/www/html
+      - ./data:/var/www/html/data
+      - ./nextcloud/apps:/var/www/html/apps
+      - ./nextcloud/custom_apps:/var/www/html/custom_apps
+      - ./nextcloud/config:/var/www/html/config
+    networks:
+      - backend
+      - app-tier
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    logging: *default-logging
+
+  web:
+    image: "${NGINX_IMAGE:?Defina NGINX_IMAGE en .env}"
+    environment:
+      VIRTUAL_HOST: "${NEXTCLOUD_DOMAIN:?Defina NEXTCLOUD_DOMAIN en .env}"
+      VIRTUAL_PORT: "80"
+      VIRTUAL_PROTO: http
+      ACME_HOST: "${NEXTCLOUD_DOMAIN:?Defina NEXTCLOUD_DOMAIN en .env}"
+      ACME_EMAIL: "${ACME_EMAIL:-}"
+      TZ: "${TZ:-UTC}"
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    volumes_from:
+      - app:ro
+    expose:
+      - "80"
+    networks:
+      - app-tier
+      - proxy-tier
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/status.php"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+
+  proxy:
+    image: "${NGINX_PROXY_IMAGE:?Defina NGINX_PROXY_IMAGE en .env}"
+    ports:
+      - "${PROXY_BIND_ADDRESS:-0.0.0.0}:${HTTP_PORT:-80}:80"
+      - "${PROXY_BIND_ADDRESS:-0.0.0.0}:${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./config/proxy/conf.d:/etc/nginx/conf.d
+      - ./config/nginx/uploadsize.conf:/etc/nginx/conf.d/zz-uploadsize.conf:ro
+      - ./config/proxy/vhost.d:/etc/nginx/vhost.d
+      - ./config/proxy/html:/usr/share/nginx/html
+      - ./config/proxy/certs:/etc/nginx/certs:ro
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    labels:
+      com.github.nginx-proxy.nginx: "true"
+    networks:
+      - proxy-tier
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging: *default-logging
+
+  acme:
+    image: "${ACME_COMPANION_IMAGE:?Defina ACME_COMPANION_IMAGE en .env}"
+    profiles:
+      - acme
+    environment:
+      DEFAULT_EMAIL: "${ACME_EMAIL:-}"
+    volumes:
+      - ./config/proxy/certs:/etc/nginx/certs:rw
+      - ./config/proxy/html:/usr/share/nginx/html:rw
+      - ./config/acme:/etc/acme.sh
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - proxy-tier
+    restart: unless-stopped
+    depends_on:
+      proxy:
+        condition: service_started
+    logging: *default-logging
+
+  onlyoffice:
+    profiles:
+      - onlyoffice
+    image: "${ONLYOFFICE_IMAGE:-onlyoffice/documentserver:9.4.0.1}"
+    environment:
+      JWT_ENABLED: "true"
+      JWT_SECRET: "${ONLYOFFICE_JWT_SECRET:-}"
+      JWT_HEADER: AuthorizationJwt
+      JWT_IN_BODY: "true"
+      TZ: "${TZ:-UTC}"
+    volumes:
+      - ./config/onlyoffice/document_data:/var/www/onlyoffice/Data
+      - ./config/onlyoffice/document_log:/var/log/onlyoffice
+      - ./config/onlyoffice/document_cache:/var/lib/onlyoffice/documentserver/App_Data/cache/files
+      - ./config/onlyoffice/example_files:/var/www/onlyoffice/documentserver-example/public/files
+      - ./config/onlyoffice/fonts:/usr/share/fonts/truetype/custom
+    expose:
+      - "80"
+    networks:
+      - app-tier
+    restart: unless-stopped
+    stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/info/info.json"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    logging: *default-logging
+
+  manager:
+    profiles:
+      - manager
+    build:
+      context: ./manager
+      dockerfile: Dockerfile
+    image: "${MANAGER_IMAGE:-nextcloud-stack-manager:0.1.0}"
+    environment:
+      COMPOSE_PROJECT_NAME: "${COMPOSE_PROJECT_NAME:-nextcloud}"
+      MANAGER_ADMIN_USER: "${MANAGER_ADMIN_USER:-admin}"
+      MANAGER_ADMIN_PASSWORD: "${MANAGER_ADMIN_PASSWORD:-}"
+      MANAGER_SECRET_KEY: "${MANAGER_SECRET_KEY:-}"
+      MANAGER_COOKIE_SECURE: "${MANAGER_COOKIE_SECURE:-false}"
+      MANAGER_PROJECT_ROOT: "${MANAGER_PROJECT_HOST_PATH:-/project}"
+      TZ: "${TZ:-UTC}"
+    ports:
+      - "${MANAGER_BIND_ADDRESS:-127.0.0.1}:${MANAGER_PORT:-8090}:8090"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - "${MANAGER_PROJECT_HOST_PATH:-.}:${MANAGER_PROJECT_HOST_PATH:-/project}"
+    networks:
+      - app-tier
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/healthz', timeout=3).read()"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging: *default-logging
+
+
+networks:
+  backend:
+    internal: true
+  app-tier:
+  proxy-tier:
+    name: "${NGINX_PROXY_NETWORK:-nginx-proxy}"
+    external: true

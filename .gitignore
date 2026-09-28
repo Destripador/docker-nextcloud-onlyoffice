@@ -1,0 +1,95 @@
+# Variables y credenciales locales
+.env
+.env.*
+!.env.example
+**/*.env
+!**/*.env.example
+compose.override.yaml
+compose.server.local.yaml
+/compose.override.yml
+/docker-compose.override.yml
+/docker-compose.override.yaml
+/compose.local.yml
+/compose.local.yaml
+/compose.override.local.yml
+/compose.override.local.yaml
+/local.sh
+Dockerfile.*.local
+config/local/
+docs/local/
+secrets/
+**/secrets/
+*.secret
+*.credentials
+
+# Ajustes PHP/FPM heredados de instalaciones locales; use config/local/ y un
+# override para sus reemplazos públicos deliberados.
+/config/nextcloud/php.ini
+/config/etc/php/conf.d/nextcloud.ini
+/config/etc/php-fpm.d/www.overloaded.conf
+
+# Claves, certificados privados y datos de ACME
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+config/acme/
+config/proxy/certs/
+config/proxy/conf.d/default.conf
+config/proxy/conf.d/uploadsize.conf
+config/proxy/html/
+config/proxy/vhost.d/
+/cfssl/
+
+# Datos persistentes y runtime del stack
+/data/
+/db/
+/nextcloud/
+config/onlyoffice/document_data/
+config/onlyoffice/document_log/
+config/onlyoffice/document_cache/
+config/onlyoffice/example_files/
+config/onlyoffice/fonts/
+config/redis/data/
+
+# Backups y volcados de bases de datos
+backup/
+backups/
+*.bak
+*.backup
+*.dump
+*.sql
+*.sql.gz
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.7z
+*.rar
+
+# Logs y temporales
+logs/
+*.log
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+*.save
+*~
+.DS_Store
+
+# Herramientas locales
+.idea/
+.vscode/
+.direnv/
+.envrc
+
+# Artefactos locales heredados que nunca deben publicarse
+/0
+/60
+/Off
+/On
+/docker-compose.yml.pre-migration
+/docker-compose.yml.symlink-backup

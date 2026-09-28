@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Configuración · Stack Manager{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Configuración</h1>
+    <p class="muted">Edición segura de parámetros no sensibles de <code>.env</code>.</p>
+  </div>
+  <a class="button ghost" href="{{ url_for('dashboard') }}">Volver</a>
+</div>
+
+{% if active_operation %}
+<div class="flash error">Hay una operación activa: {{ active_operation }}. La configuración está bloqueada temporalmente.</div>
+{% endif %}
+
+<section class="config-layout">
+  <form method="post" class="card config-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <h2>Nextcloud y entorno</h2>
+    <label>Dominio / host
+      <input name="domain" value="{{ config.domain }}" required {% if active_operation %}disabled{% endif %}>
+      <small>Ej.: cloud.example.com o localhost:8080. No incluya http:// ni rutas.</small>
+    </label>
+
+    <label>Protocolo
+      <select name="protocol" {% if active_operation %}disabled{% endif %}>
+        <option value="https" {% if config.protocol == 'https' %}selected{% endif %}>https</option>
+        <option value="http" {% if config.protocol == 'http' %}selected{% endif %}>http</option>
+      </select>
+    </label>
+
+    <label>Zona horaria
+      <input name="timezone" value="{{ config.timezone }}" required {% if active_operation %}disabled{% endif %}>
+      <small>Ej.: America/Monterrey</small>
+    </label>
+
+    <div class="two-col">
+      <label>PHP memory_limit
+        <input name="php_memory" value="{{ config.php_memory }}" required {% if active_operation %}disabled{% endif %}>
+        <small>Ej.: 1024M, 2G</small>
+      </label>
+      <label>PHP upload limit
+        <input name="php_upload" value="{{ config.php_upload }}" required {% if active_operation %}disabled{% endif %}>
+        <small>Ej.: 10G</small>
+      </label>
+    </div>
+
+    <h2>Perfiles opcionales</h2>
+    <label class="checkline">
+      <input type="checkbox" name="onlyoffice" {% if config.onlyoffice %}checked{% endif %} {% if active_operation %}disabled{% endif %}>
+      <span>OnlyOffice</span>
+    </label>
+
+    <label class="checkline">
+      <input type="checkbox" name="acme" {% if config.acme %}checked{% endif %} {% if active_operation %}disabled{% endif %}>
+      <span>ACME / HTTPS automático</span>
+    </label>
+
+    <label>Correo ACME
+      <input type="email" name="acme_email" value="{{ config.acme_email }}" {% if active_operation %}disabled{% endif %}>
+    </label>
+
+    <button type="submit" {% if active_operation %}disabled{% endif %}>Guardar configuración</button>
+  </form>
+
+  <aside class="card config-side">
+    <h2>Secretos</h2>
+    <p class="muted">El panel nunca muestra sus valores.</p>
+    <div class="secret-list">
+      {% for key, present in config.secret_status.items() %}
+      <div>
+        <code>{{ key }}</code>
+        <span class="pill {{ 'ok' if present else 'bad' }}">{{ 'configurado' if present else 'vacío' }}</span>
+      </div>
+      {% endfor %}
+    </div>
+
+    <h2>Aplicación de cambios</h2>
+    <p class="muted">Guardar modifica solo <code>.env</code> y crea una copia previa. Para recrear servicios y aplicar los cambios use la vista Actualizar.</p>
+    <a class="button ghost" href="{{ url_for('updates_view') }}">Ir a Actualizar</a>
+  </aside>
+</section>
+{% endblock %}

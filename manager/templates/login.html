@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Acceso · Stack Manager{% endblock %}
+{% block content %}
+<section class="login-card">
+  <h1>Administración</h1>
+  <p class="muted">Acceso al stack Docker de Nextcloud.</p>
+  <form method="post" class="stack">
+    <label>Usuario<input name="username" autocomplete="username" required></label>
+    <label>Contraseña<input type="password" name="password" autocomplete="current-password" required></label>
+    <button type="submit">Ingresar</button>
+  </form>
+</section>
+{% endblock %}

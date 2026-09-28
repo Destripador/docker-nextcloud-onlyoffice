@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Apps · Stack Manager{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Apps de Nextcloud</h1>
+    <p class="muted">Estado obtenido con <code>occ app:list</code>.</p>
+  </div>
+  <a class="button ghost" href="{{ url_for('dashboard') }}">Volver</a>
+</div>
+
+{% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+{% if active_operation %}<div class="flash error">Operación activa: {{ active_operation }}. Las acciones están bloqueadas.</div>{% endif %}
+
+<section class="app-list">
+{% for app in apps %}
+  <article class="app-row">
+    <div>
+      <strong>{{ app.id }}</strong>
+      <p class="muted">{{ app.version or 'sin versión reportada' }} · {{ 'habilitada' if app.state == 'enabled' else 'deshabilitada' }}{% if app.protected %} · protegida{% endif %}</p>
+    </div>
+    <form method="post" class="inline-confirm" action="{{ url_for('app_action', app_id=app.id, action='disable' if app.state == 'enabled' else 'enable') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input name="confirmation" placeholder="{{ app.id }}" autocomplete="off" {% if active_operation or (app.protected and app.state == 'enabled') %}disabled{% endif %} required>
+      {% if app.state == 'enabled' %}
+        <button class="danger" type="submit" {% if active_operation or app.protected %}disabled{% endif %}>Deshabilitar</button>
+      {% else %}
+        <button type="submit" {% if active_operation %}disabled{% endif %}>Habilitar</button>
+      {% endif %}
+    </form>
+  </article>
+{% else %}
+  <div class="notice">No se pudieron listar apps.</div>
+{% endfor %}
+</section>
+{% endblock %}

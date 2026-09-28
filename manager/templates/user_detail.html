@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Usuario {{ uid }} · Stack Manager{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ info.display_name if info and info.display_name else uid }}</h1>
+    <p class="muted"><code>{{ uid }}</code></p>
+  </div>
+  <a class="button ghost" href="{{ url_for('users_view') }}">Volver</a>
+</div>
+
+{% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+
+{% if info %}
+<section class="card user-detail">
+  <dl class="refs">
+    {% for key in ['enabled','email','display_name','quota','storage_location','last_seen'] %}
+      {% if key in info %}
+      <div><dt>{{ key }}</dt><dd><code>{{ info[key] }}</code></dd></div>
+      {% endif %}
+    {% endfor %}
+  </dl>
+</section>
+
+<section class="notice danger-zone">
+  <strong>Estado de la cuenta</strong>
+  <p>Para evitar cambios accidentales, escriba exactamente <code>{{ uid }}</code> antes de habilitar o deshabilitar.</p>
+  <form method="post" class="confirm-form" action="{{ url_for('user_action', uid=uid, action='disable' if info.get('enabled', true) else 'enable') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Confirmación
+      <input name="confirmation" autocomplete="off" {% if active_operation or (uid == admin_uid and info.get('enabled', true)) %}disabled{% endif %} required>
+    </label>
+    {% if info.get('enabled', true) %}
+      <button class="danger" type="submit" {% if active_operation or uid == admin_uid %}disabled{% endif %}>Deshabilitar usuario</button>
+      {% if uid == admin_uid %}<small class="muted">La cuenta administrativa inicial está protegida.</small>{% endif %}
+    {% else %}
+      <button type="submit" {% if active_operation %}disabled{% endif %}>Habilitar usuario</button>
+    {% endif %}
+  </form>
+</section>
+{% endif %}
+{% endblock %}

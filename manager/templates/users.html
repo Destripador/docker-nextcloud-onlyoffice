@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Usuarios · Stack Manager{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Usuarios de Nextcloud</h1>
+    <p class="muted">Consulta mediante <code>occ user:list</code>.</p>
+  </div>
+  <a class="button ghost" href="{{ url_for('dashboard') }}">Volver</a>
+</div>
+
+{% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+{% if active_operation %}<div class="flash error">Operación activa: {{ active_operation }}. Las acciones están bloqueadas.</div>{% endif %}
+
+<section class="entity-list">
+  {% for user in users %}
+  <a class="entity-row" href="{{ url_for('user_detail', uid=user.uid) }}">
+    <div>
+      <strong>{{ user.display_name }}</strong>
+      <p class="muted"><code>{{ user.uid }}</code>{% if user.uid == admin_uid %} · admin inicial{% endif %}</p>
+    </div>
+    <span>Ver detalle →</span>
+  </a>
+  {% else %}
+  <div class="notice">No se pudieron listar usuarios o no existen usuarios.</div>
+  {% endfor %}
+</section>
+{% endblock %}
