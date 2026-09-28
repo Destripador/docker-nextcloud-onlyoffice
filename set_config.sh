@@ -80,7 +80,7 @@ compose=(docker compose --project-directory "$script_dir")
 "${compose[@]}" config --quiet
 
 config_json=$("${compose[@]}" config --format json)
-for service in app web onlyoffice; do
+for service in app web; do
     if ! jq -e --arg service "$service" '.services | has($service)' \
         >/dev/null <<< "$config_json"; then
         printf 'El Compose efectivo no define el servicio requerido: %s\n' "$service" >&2
@@ -88,6 +88,10 @@ for service in app web onlyoffice; do
     fi
 done
 
+if ! jq -e '.services | has("onlyoffice")' >/dev/null <<< "$config_json"; then
+    printf '%s\n' 'OnlyOffice está deshabilitado. Active el perfil "onlyoffice" en COMPOSE_PROFILES y vuelva a levantar el stack.' >&2
+    exit 2
+fi
 jwt_secret=$(jq -er '
     .services.onlyoffice.environment.JWT_SECRET
     | select(type == "string" and length >= 32)
