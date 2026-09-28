@@ -205,6 +205,7 @@ permitidos:
 - zona horaria;
 - `PHP_MEMORY_LIMIT`;
 - `PHP_UPLOAD_LIMIT`;
+- modo desarrollo (`NEXTCLOUD_DEV_MODE`);
 - perfiles `onlyoffice` y `acme`;
 - correo ACME.
 
@@ -225,6 +226,11 @@ solo se indica si están configurados.
 Guardar configuración no recrea contenedores. Después de revisar los cambios,
 use la vista **Actualizar** para aplicar las referencias y variables actuales al
 runtime con el flujo seguro ya existente.
+
+Al activar **Modo desarrollo**, el panel guarda `NEXTCLOUD_DEV_MODE=true`.
+Cuando se aplica mediante Actualizar, `app` se reconstruye/recrea y arranca con
+debug de Nextcloud, `loglevel=0`, errores PHP visibles y OPcache deshabilitado.
+Al desactivarlo se vuelve al comportamiento normal.
 
 
 ## Usuarios y apps de Nextcloud
