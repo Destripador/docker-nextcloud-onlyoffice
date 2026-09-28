@@ -4,3 +4,9 @@
 !Dockerfile
 !supervisord.conf
 !.dockerignore
+
+# Configuración PHP-FPM incluida explícitamente en la imagen derivada.
+!config/
+config/**
+!config/php-fpm/
+!config/php-fpm/zz-nextcloud.conf
