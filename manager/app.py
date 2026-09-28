@@ -299,11 +299,13 @@ def write_env_updates(updates):
     if not env_path.is_file():
         raise OSError(".env no existe")
 
+    stat = env_path.stat()
     original = env_path.read_text(encoding="utf-8")
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     backup = PROJECT_ROOT / f".env.bak.manager.{timestamp}"
     backup.write_text(original, encoding="utf-8")
     os.chmod(backup, 0o600)
+    os.chown(backup, stat.st_uid, stat.st_gid)
 
     remaining = dict(updates)
     output = []
@@ -320,7 +322,10 @@ def write_env_updates(updates):
     tmp = PROJECT_ROOT / ".env.manager.tmp"
     tmp.write_text("\n".join(output) + "\n", encoding="utf-8")
     os.chmod(tmp, 0o600)
+    os.chown(tmp, stat.st_uid, stat.st_gid)
     os.replace(tmp, env_path)
+    os.chown(env_path, stat.st_uid, stat.st_gid)
+    os.chmod(env_path, stat.st_mode & 0o777)
     return backup.name
 
 
