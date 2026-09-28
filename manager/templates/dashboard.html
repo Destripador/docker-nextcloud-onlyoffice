@@ -19,6 +19,8 @@
   <a class="button ghost" href="{{ url_for('backups_view') }}">Backups</a>
   <a class="button ghost" href="{{ url_for('updates_view') }}">Actualizar</a>
   <a class="button ghost" href="{{ url_for('configuration_view') }}">Configuración</a>
+  <a class="button ghost" href="{{ url_for('users_view') }}">Usuarios</a>
+  <a class="button ghost" href="{{ url_for('apps_view') }}">Apps</a>
   {% if nc %}
     {% if nc.maintenance %}
     <form method="post" action="{{ url_for('maintenance_action', state='off') }}">
@@ -135,6 +137,6 @@
 
 <section class="notice">
   <strong>Alcance de esta primera versión</strong>
-  <p>El panel administra únicamente contenedores pertenecientes a este proyecto Compose. Ya incluye diagnóstico y control del modo mantenimiento. Backup ya utiliza el mismo <code>scripts/backup.sh</code> desde la interfaz. Update ya reutiliza <code>scripts/update.sh</code> desde la interfaz con confirmación explícita y backup obligatorio. Restore continúa por CLI. La configuración no sensible de <code>.env</code> ya puede administrarse desde una vista con campos permitidos y validación.</p>
+  <p>El panel administra únicamente contenedores pertenecientes a este proyecto Compose. Ya incluye diagnóstico y control del modo mantenimiento. Backup ya utiliza el mismo <code>scripts/backup.sh</code> desde la interfaz. Update ya reutiliza <code>scripts/update.sh</code> desde la interfaz con confirmación explícita y backup obligatorio. Restore continúa por CLI. La configuración no sensible de <code>.env</code> ya puede administrarse desde una vista con campos permitidos y validación. Usuarios y apps de Nextcloud también pueden consultarse y administrarse mediante acciones OCC acotadas.</p>
 </section>
 {% endblock %}
