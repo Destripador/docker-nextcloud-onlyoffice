@@ -373,8 +373,15 @@ if ! docker network inspect -- "$proxy_network" >/dev/null 2>&1; then
 fi
 ok "Red Docker preparada: $proxy_network"
 
-info 'Ejecutando comprobaciones previas...'
-if ! bash scripts/preflight.sh; then
+info 'Validando host y configuración...'
+preflight_log=$(mktemp)
+if bash scripts/preflight.sh --quiet >"$preflight_log" 2>&1; then
+    ok 'Preflight superado.'
+    rm -f "$preflight_log"
+else
+    printf '\n'
+    cat "$preflight_log"
+    rm -f "$preflight_log"
     die 'El preflight encontró errores. No se inició ningún contenedor.'
 fi
 
@@ -397,8 +404,27 @@ ok 'Contenedores iniciados.'
 
 doctor_status=0
 if [[ -f scripts/doctor.sh ]]; then
-    info 'Ejecutando diagnóstico posterior...'
-    bash scripts/doctor.sh || doctor_status=$?
+    info 'Verificando la instalación...'
+    doctor_log=$(mktemp)
+    if bash scripts/doctor.sh >"$doctor_log" 2>&1; then
+        ok 'MariaDB'
+        ok 'Redis'
+        ok 'Nextcloud'
+        ok 'Nginx'
+        ok 'Proxy'
+        if [[ $onlyoffice == true ]]; then
+            ok 'OnlyOffice'
+        else
+            info 'OnlyOffice deshabilitado'
+        fi
+        rm -f "$doctor_log"
+    else
+        doctor_status=$?
+        warn 'La comprobación final encontró un problema.'
+        printf '\nDiagnóstico detallado:\n\n'
+        cat "$doctor_log"
+        rm -f "$doctor_log"
+    fi
 fi
 
 say
@@ -416,8 +442,8 @@ say "OnlyOffice: $([[ $onlyoffice == true ]] && printf 'activado' || printf 'des
 say "HTTPS automático: $([[ $acme == true ]] && printf 'activado' || printf 'desactivado')"
 
 if ((doctor_status != 0)); then
-    warn 'Los contenedores arrancaron, pero doctor.sh encontró algo que revisar.'
-    say 'Ejecute: bash scripts/doctor.sh'
+    warn 'Los contenedores arrancaron, pero la comprobación final requiere atención.'
+    say 'Puede repetir el diagnóstico con: bash scripts/doctor.sh'
     exit 1
 fi
 
