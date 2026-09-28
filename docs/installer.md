@@ -38,7 +38,9 @@ El instalador:
 - construye la imagen de Nextcloud;
 - inicia los servicios;
 - espera healthchecks cuando Compose soporta `--wait`;
-- ejecuta `scripts/doctor.sh`;
+- ejecuta `scripts/doctor.sh` de forma silenciosa cuando todo está bien;
+- muestra un resumen simple por componente;
+- solo imprime el diagnóstico técnico completo cuando algo falla;
 - muestra la URL y el usuario administrador.
 
 Si la contraseña del administrador se deja vacía, genera una automáticamente y
