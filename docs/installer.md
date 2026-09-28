@@ -117,19 +117,29 @@ bash install.sh --dev --no-start
 
 Esto crea la configuración, directorios y red, y ejecuta el preflight.
 
-## Protección de instalaciones existentes
+## Instalaciones existentes
 
-El instalador está pensado inicialmente para instalaciones nuevas. Si detecta
-`db/` con contenido o `nextcloud/config/config.php`, se detiene y no modifica
-los datos.
+El instalador detecta primero si ya existe persistencia y evita reemplazar
+`.env`, contraseñas, MariaDB o archivos de usuario.
 
-Si ya existe `.env`, pide confirmación antes de reemplazarlo y guarda una copia
-con modo `0600`. En ejecución no interactiva, solo se reemplaza con
-`--force-config`.
+Una instalación básica existente puede ampliarse con OnlyOffice usando:
 
-`--force-config` no habilita la modificación de una instalación con datos; solo
-permite sustituir el archivo de configuración cuando no existe persistencia
-detectada.
+```sh
+bash install.sh --dev-full
+```
+
+En ese caso el instalador conserva toda la configuración existente, añade el
+perfil `onlyoffice`, genera el JWT solo si hace falta, guarda una copia de
+`.env`, crea únicamente los directorios de Document Server, inicia OnlyOffice y
+configura la app conectora dentro de Nextcloud.
+
+La reconfiguración automática de dominio, HTTPS o credenciales de una instalación
+existente sigue bloqueada deliberadamente porque puede afectar un despliegue en
+producción.
+
+En instalaciones nuevas, si existe únicamente un `.env` pero no hay datos, el
+instalador pide confirmación antes de sustituirlo y guarda una copia con modo
+`0600`.
 
 ## Opciones
 
