@@ -23,7 +23,7 @@ simbólico temporal para flujos antiguos; consulte
 | `app` | Nextcloud PHP-FPM y cron bajo Supervisor | Sin puerto de host |
 | `web` | Nginx para estáticos, FastCGI y `/ds-vpath/` | A través de `proxy` |
 | `proxy` | Entrada HTTP/HTTPS mediante nginx-proxy | Puertos 80 y 443 |
-| `onlyoffice` | Document Server con JWT | A través de `/ds-vpath/` |
+| `onlyoffice` | Document Server con JWT | Perfil Compose `onlyoffice`; a través de `/ds-vpath/` |
 | `acme` | Certificados mediante acme-companion | Perfil Compose `acme` |
 
 El stack usa tres redes:
@@ -98,9 +98,9 @@ core y los assets. Mantener un umask restrictivo durante el resto de la
 instalación puede provocar errores `403 Permission denied` y respuestas 404
 para archivos CSS/JS.
 
-Edite `.env`, sustituya el dominio y el correo, y complete todos los secretos
-vacíos. Compose se niega a renderizar mientras falte alguno.
-Genere valores distintos para cada secreto, por ejemplo:
+Edite `.env`, sustituya el dominio y el correo, y complete los secretos
+obligatorios. `ONLYOFFICE_JWT_SECRET` solo es necesario cuando el perfil
+`onlyoffice` está activo. Genere valores distintos para cada secreto, por ejemplo:
 
 ```sh
 openssl rand -hex 32
@@ -118,12 +118,20 @@ El mapa completo de variables está en
 
 ### 2. Preparar persistencia y red
 
+Para el stack base:
+
 ```sh
 mkdir -p \
   db data \
   nextcloud/page/web nextcloud/apps nextcloud/custom_apps nextcloud/config \
   config/proxy/conf.d config/proxy/vhost.d config/proxy/html config/proxy/certs \
-  config/acme config/redis/data \
+  config/acme config/redis/data
+```
+
+Si habilita el perfil `onlyoffice`, cree además:
+
+```sh
+mkdir -p \
   config/onlyoffice/document_data config/onlyoffice/document_log \
   config/onlyoffice/document_cache config/onlyoffice/example_files \
   config/onlyoffice/fonts
@@ -146,9 +154,17 @@ los puertos configurados. Si publica directamente un puerto HTTPS distinto de
 443, ajústelo también en `NEXTCLOUD_TRUSTED_DOMAINS`,
 `NEXTCLOUD_OVERWRITE_HOST` y `NEXTCLOUD_PUBLIC_URL`.
 
-El ejemplo activa ACME mediante `COMPOSE_PROFILES=acme`. Para terminar TLS en
-otro proxy, deje esa variable vacía, ajuste `NEXTCLOUD_OVERWRITE_PROTOCOL` y
-documente su propia cadena de proxies confiables. Detalles:
+Los componentes opcionales se controlan con `COMPOSE_PROFILES`:
+
+```ini
+COMPOSE_PROFILES=                 # Nextcloud base
+COMPOSE_PROFILES=onlyoffice       # Nextcloud + OnlyOffice
+COMPOSE_PROFILES=acme             # Nextcloud + ACME
+COMPOSE_PROFILES=acme,onlyoffice  # stack completo
+```
+
+Para terminar TLS en otro proxy, no active `acme`, ajuste
+`NEXTCLOUD_OVERWRITE_PROTOCOL` y documente su propia cadena de proxies confiables. Detalles:
 [docs/configuration.md](docs/configuration.md#dominio-proxy-y-tls).
 
 ### 4. Validar, construir e iniciar
@@ -177,9 +193,13 @@ ejecutó.
 
 ### 5. Acceso inicial y OnlyOffice
 
-Abra `https://` seguido de `NEXTCLOUD_DOMAIN`. Las variables de `.env` realizan
-la instalación inicial de Nextcloud cuando el volumen está vacío. Una vez que
-Nextcloud responda:
+Abra la URL indicada por `NEXTCLOUD_PUBLIC_URL`. Las variables de `.env`
+realizan la instalación inicial de Nextcloud cuando el volumen está vacío.
+
+Si no activó el perfil `onlyoffice`, no hay ningún paso adicional: Document
+Server no consume RAM ni CPU y Nextcloud funciona normalmente.
+
+Si activó `onlyoffice`, una vez que Nextcloud responda:
 
 1. instale y habilite la app oficial **ONLYOFFICE** desde Nextcloud;
 2. revise el riesgo de `allow_local_remote_servers` descrito en
