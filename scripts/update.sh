@@ -135,9 +135,22 @@ else
     "${compose[@]}" up -d
 fi
 
-printf '[INFO] Comprobando actualización de Nextcloud...\n'
-needs_upgrade=$("${compose[@]}" exec -T --user www-data app \
-    php occ status --output=json --no-ansi --no-interaction 2>/dev/null || true)
+printf '[INFO] Esperando a que Nextcloud responda por OCC...\n'
+needs_upgrade=
+occ_ready=false
+for _ in {1..30}; do
+    if needs_upgrade=$("${compose[@]}" exec -T --user www-data app \
+        php occ status --output=json --no-ansi --no-interaction 2>/dev/null); then
+        occ_ready=true
+        break
+    fi
+    sleep 2
+done
+
+if [[ $occ_ready != true ]]; then
+    printf '[ERROR] Nextcloud no respondió por OCC después de 60 segundos.\n' >&2
+    exit 1
+fi
 
 if grep -Eq '"needsDbUpgrade"[[:space:]]*:[[:space:]]*true' <<< "$needs_upgrade"; then
     printf '[INFO] Nextcloud requiere actualización de base de datos; ejecutando occ upgrade...\n'
