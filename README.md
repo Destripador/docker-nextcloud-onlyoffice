@@ -104,9 +104,11 @@ El asistente ofrece cuatro modos:
 ```text
 1) Desarrollo básico
    Nextcloud + MariaDB + Redis
+   Debug de Nextcloud activo y OPcache deshabilitado
 
 2) Desarrollo completo
    Lo anterior + OnlyOffice
+   Debug de Nextcloud activo y OPcache deshabilitado
 
 3) Servidor público
    Dominio + HTTPS automático + OnlyOffice opcional
@@ -131,6 +133,15 @@ Para preparar todo sin iniciar contenedores:
 ```sh
 bash install.sh --dev --no-start
 ```
+
+Los presets `--dev` y `--dev-full` establecen
+`NEXTCLOUD_DEV_MODE=true`. En ese modo la imagen:
+
+- habilita `debug => true` y `loglevel => 0` mediante un fragmento de configuración de Nextcloud;
+- deshabilita OPcache para PHP-FPM y CLI;
+- activa `display_errors` y `E_ALL`.
+
+En producción `NEXTCLOUD_DEV_MODE=false` es el valor predeterminado.
 
 Consulte [la guía del instalador](docs/installer.md) para opciones adicionales.
 
