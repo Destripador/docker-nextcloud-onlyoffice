@@ -98,7 +98,7 @@ set_env MANAGER_BIND_ADDRESS 127.0.0.1
 set_env MANAGER_PORT 8090
 set_env MANAGER_PROJECT_HOST_PATH /tmp/nextcloud-ci
 
-python -m py_compile manager/app.py manager/backup_job.py
+python -m py_compile manager/app.py manager/backup_job.py manager/update_job.py
 ok 'Sintaxis Python del manager'
 
 for profiles in '' onlyoffice acme manager onlyoffice,manager acme,onlyoffice,manager; do
