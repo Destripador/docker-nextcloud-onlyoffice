@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Diagnóstico · Stack Manager{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Diagnóstico</h1>
+    <p class="muted">{{ passed }} de {{ total }} comprobaciones correctas.</p>
+  </div>
+  <a class="button ghost" href="{{ url_for('dashboard') }}">Volver</a>
+</div>
+
+<section class="diagnostic-list">
+{% for check in checks %}
+  <article class="diagnostic-item">
+    <span class="dot {{ 'ok' if check.ok else 'bad' }}"></span>
+    <div>
+      <strong>{{ check.name }}</strong>
+      <p class="muted">{{ check.detail }}</p>
+    </div>
+  </article>
+{% endfor %}
+</section>
+{% endblock %}
