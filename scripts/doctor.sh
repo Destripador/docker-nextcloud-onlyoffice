@@ -449,11 +449,15 @@ if [[ $config_valid == true && $docker_ready == true ]]; then
         error 'Redis: servicio detenido'
     fi
 
-    if is_running onlyoffice && run_timeout 20 "${compose[@]}" exec -T onlyoffice \
-        curl -fsS --max-time 8 http://127.0.0.1:8000/info/info.json >/dev/null 2>&1; then
-        ok 'OnlyOffice'
+    if has_service onlyoffice; then
+        if is_running onlyoffice && run_timeout 20 "${compose[@]}" exec -T onlyoffice \
+            curl -fsS --max-time 8 http://127.0.0.1:8000/info/info.json >/dev/null 2>&1; then
+            ok 'OnlyOffice'
+        else
+            error 'OnlyOffice: perfil activo pero servicio detenido o healthcheck fallido'
+        fi
     else
-        error 'OnlyOffice: servicio detenido o healthcheck fallido'
+        ok 'OnlyOffice omitido; no se ejecuta healthcheck'
     fi
 fi
 
