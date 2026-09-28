@@ -33,6 +33,66 @@
   {% endif %}
 </section>
 
+<section class="metrics-grid">
+  <article class="metric-card">
+    <span class="metric-label">CPU host</span>
+    <strong>{{ summary.host_cpus or '—' }}</strong>
+    <span class="muted">núcleos visibles por Docker</span>
+  </article>
+  <article class="metric-card">
+    <span class="metric-label">RAM host</span>
+    <strong>{{ human_size(summary.host_memory) if summary.host_memory else '—' }}</strong>
+    <span class="muted">memoria total reportada por Docker</span>
+  </article>
+  <article class="metric-card">
+    <span class="metric-label">Disco</span>
+    <strong>{{ human_size(summary.disk_free) if summary.disk_free is not none else '—' }}</strong>
+    <span class="muted">libres{% if summary.disk_percent is not none %} · {{ summary.disk_percent }}% usado{% endif %}</span>
+  </article>
+  <article class="metric-card">
+    <span class="metric-label">Datos Nextcloud</span>
+    <strong>{{ human_size(summary.data_size) if summary.data_size is not none else '—' }}</strong>
+    <span class="muted">directorio data/</span>
+  </article>
+  <article class="metric-card">
+    <span class="metric-label">MariaDB</span>
+    <strong>{{ human_size(summary.db_logical_size) if summary.db_logical_size is not none else '—' }}</strong>
+    <span class="muted">tamaño lógico{% if summary.db_files_size is not none %} · {{ human_size(summary.db_files_size) }} en disco{% endif %}</span>
+  </article>
+  <article class="metric-card">
+    <span class="metric-label">Backups</span>
+    <strong>{{ human_size(summary.backups_size) if summary.backups_size is not none else '—' }}</strong>
+    <span class="muted">directorio backups/</span>
+  </article>
+</section>
+
+<section class="runtime-table-wrap">
+  <div class="section-head">
+    <div>
+      <h2>Consumo por servicio</h2>
+      <p class="muted">Métricas instantáneas del runtime Docker.</p>
+    </div>
+  </div>
+  <div class="runtime-table">
+    <div class="runtime-row runtime-head">
+      <span>Servicio</span><span>CPU</span><span>Memoria</span><span>Uptime</span>
+    </div>
+    {% for item in summary.containers %}
+    <div class="runtime-row">
+      <strong>{{ item.name }}</strong>
+      <span>{{ item.cpu_percent ~ '%' if item.cpu_percent is not none else '—' }}</span>
+      <span>
+        {% if item.memory_usage is not none %}
+          {{ human_size(item.memory_usage) }}
+          {% if item.memory_limit %}<small>/ {{ human_size(item.memory_limit) }}</small>{% endif %}
+        {% else %}—{% endif %}
+      </span>
+      <span>{{ item.uptime or '—' }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
 <section class="grid">
 {% for card in cards %}
   <article class="card">
