@@ -20,7 +20,8 @@ Comandos:
   rebuild         Reconstruye la imagen de Nextcloud y recrea app/web
   onlyoffice-on   Activa OnlyOffice en una instalación existente
   onlyoffice-off  Detiene OnlyOffice y lo quita del perfil activo
-  refresh         Descarga las imágenes fijadas actuales y recrea el stack
+  refresh         Reaplica las imágenes actuales sin cambiar versiones
+  update          Actualización segura con backup obligatorio
 EOF
 }
 
@@ -125,13 +126,22 @@ case "${1:-}" in
     echo "[INFO] Copia de .env: $backup"
     ;;
   refresh)
-    echo "[INFO] Descargando imágenes fijadas en .env..."
-    "${compose[@]}" pull
-    echo "[INFO] Reconstruyendo la imagen app..."
+    echo "[INFO] Reaplicando referencias actuales de .env..."
+    mapfile -t services < <("${compose[@]}" config --services)
+    pull_services=()
+    for service in "${services[@]}"; do
+      [[ $service == app ]] && continue
+      pull_services+=("$service")
+    done
+    if ((${#pull_services[@]} > 0)); then
+      "${compose[@]}" pull "${pull_services[@]}"
+    fi
     "${compose[@]}" build --pull app
-    echo "[INFO] Recreando stack..."
     "${compose[@]}" up -d
-    echo "[OK] Stack actualizado con las referencias actuales de .env."
+    echo "[OK] Stack reaplicado con las referencias actuales."
+    ;;
+  update)
+    exec bash scripts/update.sh --apply
     ;;
   help|-h|--help|"")
     usage
