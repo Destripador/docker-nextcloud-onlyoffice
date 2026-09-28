@@ -20,7 +20,7 @@ salida expandida contiene secretos.
 | Variable | Obligatoria | Uso |
 | --- | --- | --- |
 | `COMPOSE_PROJECT_NAME` | Sí | Identidad estable del proyecto |
-| `COMPOSE_PROFILES` | No | `acme` activa el companion; vacío lo omite |
+| `COMPOSE_PROFILES` | No | Activa perfiles opcionales: `acme`, `onlyoffice` o ambos |
 | `NEXTCLOUD_BASE_IMAGE` | Sí | Imagen oficial FPM Alpine usada por el build |
 | `NEXTCLOUD_APP_IMAGE` | Sí | Nombre distinto para la imagen derivada local |
 | `MARIADB_IMAGE` | Sí | Referencia completa de MariaDB |
@@ -28,7 +28,7 @@ salida expandida contiene secretos.
 | `NGINX_IMAGE` | Sí | Referencia completa de Nginx |
 | `NGINX_PROXY_IMAGE` | Sí | Referencia completa de nginx-proxy |
 | `ACME_COMPANION_IMAGE` | Sí | Referencia completa de acme-companion |
-| `ONLYOFFICE_IMAGE` | Sí | Referencia completa de Document Server |
+| `ONLYOFFICE_IMAGE` | Con perfil OnlyOffice | Referencia completa de Document Server |
 
 Use tags exactos o digests. No use `latest`, `stable`, `production`, `alpine` sin
 versión ni una referencia sin tag. Actualizar un pin sigue siendo una operación
@@ -55,9 +55,9 @@ estándar, inclúyalo en `NEXTCLOUD_TRUSTED_DOMAINS`,
 y, si publica IPv6, AAAA que apunte al host. El desafío HTTP-01 requiere acceso
 externo al puerto 80 además de 443.
 
-Si otro balanceador termina TLS, deje `COMPOSE_PROFILES` vacío, no publique el
-perfil ACME y configure los proxies confiables de Nextcloud para las direcciones
-reales de su entorno. No acepte cabeceras reenviadas desde redes no confiables.
+Si otro balanceador termina TLS, no active el perfil `acme`. Puede mantener
+`onlyoffice` de forma independiente. Configure los proxies confiables de
+Nextcloud para las direcciones reales de su entorno. No acepte cabeceras reenviadas desde redes no confiables.
 
 La red externa no se crea automáticamente:
 
@@ -91,7 +91,7 @@ datos incompatible.
 | Variable | Obligatoria | Uso |
 | --- | --- | --- |
 | `REDIS_PASSWORD` | Sí | Contraseña compartida por Redis y Nextcloud |
-| `ONLYOFFICE_JWT_SECRET` | Sí | JWT compartido por Document Server y el conector |
+| `ONLYOFFICE_JWT_SECRET` | Con perfil OnlyOffice | JWT compartido por Document Server y el conector |
 
 Genere valores independientes de al menos 32 bytes:
 
@@ -111,8 +111,24 @@ que permite inspeccionar esos entornos.
 
 ## Integración de OnlyOffice
 
-Nginx publica Document Server en `https://DOMINIO/ds-vpath/`; las conexiones
-internas usan `http://onlyoffice/` y `http://web/`. El JWT usa la cabecera
+OnlyOffice es opcional y está detrás del perfil Compose `onlyoffice`. Si el
+perfil no está activo, el contenedor no se crea ni consume recursos. Nginx puede
+arrancar sin resolver el hostname `onlyoffice`; una petición accidental a
+`/ds-vpath/` sin el perfil activo devolverá error de upstream sin afectar a
+Nextcloud.
+
+Perfiles habituales:
+
+```ini
+COMPOSE_PROFILES=
+COMPOSE_PROFILES=onlyoffice
+COMPOSE_PROFILES=acme
+COMPOSE_PROFILES=acme,onlyoffice
+```
+
+Con el perfil activo, Nginx publica Document Server en
+`https://DOMINIO/ds-vpath/`; las conexiones internas usan
+`http://onlyoffice/` y `http://web/`. El JWT usa la cabecera
 `AuthorizationJwt` en ambos extremos.
 
 Después de instalar y habilitar la app oficial ONLYOFFICE en Nextcloud:
