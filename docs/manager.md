@@ -16,14 +16,17 @@ La primera versión permite:
 - listar backups existentes, tamaño y estructura esperada;
 - verificar `SHA256SUMS` y la integridad gzip del dump SQL;
 - consultar la salida del último backup;
+- aplicar las referencias actuales de `.env` reutilizando `scripts/update.sh`;
+- exigir confirmación textual antes de actualizar y bloquear acciones concurrentes;
+- consultar la salida de la última actualización;
 - consultar las últimas 250 líneas de logs por servicio;
 - administrar únicamente contenedores con la etiqueta
   `com.docker.compose.project` que coincide con este stack.
 
-Restore, update y edición de `.env` permanecen por CLI por ahora. El panel no
-duplica la lógica de backup: ejecuta el mismo `scripts/backup.sh` usado por
-`manage.sh backup`, en segundo plano y con un bloqueo para impedir dos copias
-simultáneas.
+Restore y edición de `.env` permanecen por CLI por ahora. El panel no duplica
+la lógica de backup ni actualización: ejecuta los mismos `scripts/backup.sh` y
+`scripts/update.sh` usados por la CLI. Las operaciones se ejecutan en segundo
+plano y usan bloqueos para impedir que backup/update se solapen.
 
 ## Activación recomendada
 
@@ -139,3 +142,29 @@ una ruta incorrecta.
 No se ofrece restauración desde la web en esta versión. Una restauración puede
 reemplazar estado completo y se mantendrá fuera del panel hasta contar con una
 confirmación reforzada y una prueba aislada del flujo.
+
+
+## Actualizaciones desde el panel
+
+La vista **Actualizar** muestra únicamente referencias no sensibles de `.env`
+(imágenes y perfiles). El panel **no edita versiones**.
+
+Para aplicar las referencias actuales se debe escribir literalmente
+`ACTUALIZAR`. Después se ejecuta el mismo flujo que:
+
+```sh
+bash scripts/update.sh --apply
+```
+
+Ese flujo realiza preflight, backup obligatorio, mantenimiento, pull de imágenes
+configuradas, rebuild de la imagen Nextcloud, recreación del stack principal,
+`occ upgrade` cuando corresponde y diagnóstico final.
+
+El servicio `manager` se excluye deliberadamente del pull y de la recreación
+durante ese flujo para que la interfaz y el proceso de actualización no se
+destruyan a sí mismos. No existe rollback automático de migraciones de base de
+datos; ante un fallo debe usarse el backup creado inmediatamente antes.
+
+Mientras hay un backup o una actualización activa, el panel bloquea nuevas
+operaciones de backup, update, mantenimiento y start/stop/restart de servicios
+para evitar interferencias.
