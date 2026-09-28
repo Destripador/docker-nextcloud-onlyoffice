@@ -1,6 +1,7 @@
 import hmac
 import json
 import os
+import re
 import secrets
 import subprocess
 import sys
@@ -200,6 +201,128 @@ def env_public_values():
     except OSError:
         pass
     return values
+
+
+def read_env_map():
+    values = {}
+    env_path = PROJECT_ROOT / ".env"
+    if not env_path.is_file():
+        return values
+    try:
+        for raw in env_path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            values[key.strip()] = value.strip().strip('"').strip("'")
+    except OSError:
+        pass
+    return values
+
+
+def write_env_updates(updates):
+    env_path = PROJECT_ROOT / ".env"
+    if not env_path.is_file():
+        raise OSError(".env no existe")
+
+    original = env_path.read_text(encoding="utf-8")
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    backup = PROJECT_ROOT / f".env.bak.manager.{timestamp}"
+    backup.write_text(original, encoding="utf-8")
+    os.chmod(backup, 0o600)
+
+    remaining = dict(updates)
+    output = []
+    for raw in original.splitlines():
+        if "=" in raw and not raw.lstrip().startswith("#"):
+            key = raw.split("=", 1)[0].strip()
+            if key in remaining:
+                output.append(f"{key}={remaining.pop(key)}")
+                continue
+        output.append(raw)
+    for key, value in remaining.items():
+        output.append(f"{key}={value}")
+
+    tmp = PROJECT_ROOT / ".env.manager.tmp"
+    tmp.write_text("\n".join(output) + "\n", encoding="utf-8")
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, env_path)
+    return backup.name
+
+
+def configuration_values():
+    env = read_env_map()
+    profiles = {p.strip() for p in env.get("COMPOSE_PROFILES", "").split(",") if p.strip()}
+    return {
+        "domain": env.get("NEXTCLOUD_DOMAIN", ""),
+        "protocol": env.get("NEXTCLOUD_OVERWRITE_PROTOCOL", "https"),
+        "timezone": env.get("TZ", "UTC"),
+        "php_memory": env.get("PHP_MEMORY_LIMIT", "1024M"),
+        "php_upload": env.get("PHP_UPLOAD_LIMIT", "10G"),
+        "acme_email": env.get("ACME_EMAIL", ""),
+        "onlyoffice": "onlyoffice" in profiles,
+        "acme": "acme" in profiles,
+        "manager": "manager" in profiles,
+        "secret_status": {
+            "MYSQL_PASSWORD": bool(env.get("MYSQL_PASSWORD")),
+            "MYSQL_ROOT_PASSWORD": bool(env.get("MYSQL_ROOT_PASSWORD")),
+            "REDIS_PASSWORD": bool(env.get("REDIS_PASSWORD")),
+            "ONLYOFFICE_JWT_SECRET": bool(env.get("ONLYOFFICE_JWT_SECRET")),
+            "MANAGER_ADMIN_PASSWORD": bool(env.get("MANAGER_ADMIN_PASSWORD")),
+            "MANAGER_SECRET_KEY": bool(env.get("MANAGER_SECRET_KEY")),
+        },
+    }
+
+
+def validate_configuration(form):
+    domain = form.get("domain", "").strip()
+    protocol = form.get("protocol", "").strip()
+    timezone_name = form.get("timezone", "").strip()
+    php_memory = form.get("php_memory", "").strip().upper()
+    php_upload = form.get("php_upload", "").strip().upper()
+    acme_email = form.get("acme_email", "").strip()
+    enable_onlyoffice = form.get("onlyoffice") == "on"
+    enable_acme = form.get("acme") == "on"
+
+    if not re.fullmatch(r"[A-Za-z0-9.-]+(?::[0-9]{1,5})?", domain):
+        raise ValueError("Dominio/host inválido.")
+    if protocol not in {"http", "https"}:
+        raise ValueError("Protocolo inválido.")
+    if not re.fullmatch(r"[A-Za-z0-9._+-]+(?:/[A-Za-z0-9._+-]+)*", timezone_name):
+        raise ValueError("Zona horaria inválida.")
+    if not re.fullmatch(r"[1-9][0-9]*(?:K|M|G|T)", php_memory):
+        raise ValueError("PHP_MEMORY_LIMIT debe usar formato como 1024M o 2G.")
+    if not re.fullmatch(r"[1-9][0-9]*(?:K|M|G|T)", php_upload):
+        raise ValueError("PHP_UPLOAD_LIMIT debe usar formato como 10G.")
+    if enable_acme and (not acme_email or "@" not in acme_email or " " in acme_email):
+        raise ValueError("ACME requiere un correo válido.")
+    if enable_acme and protocol != "https":
+        raise ValueError("El perfil ACME requiere protocolo https.")
+
+    env = read_env_map()
+    profiles = [p.strip() for p in env.get("COMPOSE_PROFILES", "").split(",") if p.strip()]
+    profiles = [p for p in profiles if p not in {"acme", "onlyoffice", "manager"}]
+    if enable_acme:
+        profiles.append("acme")
+    if enable_onlyoffice:
+        profiles.append("onlyoffice")
+    profiles.append("manager")
+    profiles = list(dict.fromkeys(profiles))
+
+    host = domain
+    public_url = f"{protocol}://{domain}"
+    return {
+        "NEXTCLOUD_DOMAIN": domain,
+        "NEXTCLOUD_TRUSTED_DOMAINS": domain,
+        "NEXTCLOUD_OVERWRITE_PROTOCOL": protocol,
+        "NEXTCLOUD_OVERWRITE_HOST": host,
+        "NEXTCLOUD_PUBLIC_URL": public_url,
+        "TZ": timezone_name,
+        "PHP_MEMORY_LIMIT": php_memory,
+        "PHP_UPLOAD_LIMIT": php_upload,
+        "ACME_EMAIL": acme_email,
+        "COMPOSE_PROFILES": ",".join(profiles),
+    }
 
 
 def backup_inventory():
@@ -516,6 +639,41 @@ def dashboard():
         human_size=human_size,
         project=PROJECT,
     )
+
+
+@app.get("/configuration")
+@login_required
+def configuration_view():
+    return render_template(
+        "configuration.html",
+        config=configuration_values(),
+        active_operation=active_operation(),
+        project=PROJECT,
+    )
+
+
+@app.post("/configuration")
+@login_required
+def configuration_save():
+    require_csrf()
+    running = active_operation()
+    if running:
+        flash(f"No se puede editar configuración mientras {running} está en ejecución.", "error")
+        return redirect(url_for("configuration_view"))
+
+    try:
+        updates = validate_configuration(request.form)
+        backup_name = write_env_updates(updates)
+    except (ValueError, OSError) as exc:
+        flash(f"No se guardó la configuración: {exc}", "error")
+        return redirect(url_for("configuration_view"))
+
+    flash(
+        f"Configuración guardada. Copia previa: {backup_name}. "
+        "Use Actualizar para aplicar cambios al runtime.",
+        "success",
+    )
+    return redirect(url_for("configuration_view"))
 
 
 @app.get("/backups")
