@@ -382,8 +382,18 @@ if [[ $config_valid == true && $docker_ready == true ]]; then
     fi
 
     if is_running app; then
-        if occ_status=$(run_timeout 20 "${compose[@]}" exec -T --user www-data app \
-            php occ status --output=json --no-ansi --no-interaction 2>/dev/null); then
+        occ_status=
+        occ_ready=false
+        for _ in {1..6}; do
+            if occ_status=$(run_timeout 20 "${compose[@]}" exec -T --user www-data app \
+                php occ status --output=json --no-ansi --no-interaction 2>/dev/null); then
+                occ_ready=true
+                break
+            fi
+            sleep 2
+        done
+
+        if [[ $occ_ready == true ]]; then
             if grep -Eq '"installed"[[:space:]]*:[[:space:]]*true' <<< "$occ_status"; then
                 ok 'occ status'
             else
@@ -394,8 +404,9 @@ if [[ $config_valid == true && $docker_ready == true ]]; then
             grep -Eq '"needsDbUpgrade"[[:space:]]*:[[:space:]]*true' <<< "$occ_status" \
                 && warn 'Nextcloud informa una actualización de base pendiente'
         else
-            error 'occ status: no se pudo ejecutar'
+            error 'occ status: no respondió después de varios intentos'
         fi
+        unset occ_status occ_ready
     else
         error 'Nextcloud: servicio app no está en ejecución'
     fi
