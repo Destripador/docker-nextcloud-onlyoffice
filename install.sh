@@ -157,6 +157,21 @@ set_env() {
     rm -f "$tmp"
 }
 
+env_value() {
+    local key=$1 value
+    [[ -f .env ]] || return 0
+    value=$(awk -F= -v wanted="$key" '
+        $0 !~ /^[[:space:]]*#/ && $1 ~ "^[[:space:]]*" wanted "[[:space:]]*$" {
+            sub(/^[^=]*=/, "")
+            print
+            exit
+        }
+    ' .env 2>/dev/null || true)
+    value=${value#"${value%%[![:space:]]*}"}
+    value=${value%"${value##*[![:space:]]}"}
+    printf '%s' "$value"
+}
+
 nonempty_dir() {
     local path=$1
     [[ -d $path ]] && find "$path" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null | grep -q .
@@ -258,6 +273,107 @@ case $mode in
     *) die "Modo desconocido: $mode" ;;
 esac
 
+existing_install=false
+if nonempty_dir db || [[ -f nextcloud/config/config.php ]]; then
+    existing_install=true
+fi
+
+if [[ $existing_install == true ]]; then
+    [[ -f .env ]] || die 'Se detectó una instalación existente pero falta .env. No se modificará nada.'
+
+    info 'Se detectó una instalación existente; no se tocarán MariaDB, datos ni credenciales.'
+
+    if [[ $onlyoffice != true ]]; then
+        if [[ $mode == production || $mode == custom ]]; then
+            die 'La reconfiguración de dominio/HTTPS de una instalación existente no se automatiza todavía.'
+        fi
+        info 'No hay componentes nuevos que agregar para este modo.'
+        if [[ -f scripts/doctor.sh ]]; then
+            bash scripts/doctor.sh --quiet 2>/dev/null || true
+        fi
+        exit 0
+    fi
+
+    current_profiles=$(env_value COMPOSE_PROFILES)
+    if [[ ,$current_profiles, == *,onlyoffice,* ]]; then
+        info 'OnlyOffice ya está habilitado en COMPOSE_PROFILES.'
+    else
+        backup=".env.bak.$(date +%Y%m%d-%H%M%S)"
+        cp .env "$backup"
+        chmod 600 "$backup"
+        warn "Se guardó la configuración actual en $backup"
+
+        if [[ -z $current_profiles ]]; then
+            set_env COMPOSE_PROFILES onlyoffice
+        else
+            set_env COMPOSE_PROFILES "$current_profiles,onlyoffice"
+        fi
+
+        current_jwt=$(env_value ONLYOFFICE_JWT_SECRET)
+        if [[ ! $current_jwt =~ ^[0-9A-Fa-f]{64,}$ ]]; then
+            set_env ONLYOFFICE_JWT_SECRET "$(openssl rand -hex 32)"
+        fi
+        unset current_jwt
+    fi
+    unset current_profiles
+
+    mkdir -p \
+        config/onlyoffice/document_data \
+        config/onlyoffice/document_log \
+        config/onlyoffice/document_cache \
+        config/onlyoffice/example_files \
+        config/onlyoffice/fonts
+
+    info 'Validando la instalación existente con el nuevo perfil...'
+    preflight_log=$(mktemp)
+    if bash scripts/preflight.sh --quiet >"$preflight_log" 2>&1; then
+        ok 'Preflight superado.'
+        rm -f "$preflight_log"
+    else
+        printf '\n'
+        cat "$preflight_log"
+        rm -f "$preflight_log"
+        die 'El preflight encontró errores. No se modificaron los datos persistentes.'
+    fi
+
+    if [[ $no_start == true ]]; then
+        ok 'OnlyOffice quedó preparado en la configuración (--no-start).'
+        exit 0
+    fi
+
+    info 'Iniciando OnlyOffice...'
+    if docker compose up --help 2>/dev/null | grep -q -- '--wait'; then
+        docker compose up -d --wait --wait-timeout 300 onlyoffice
+    else
+        docker compose up -d onlyoffice
+    fi
+
+    public_url=$(env_value NEXTCLOUD_PUBLIC_URL)
+    [[ -n $public_url ]] || die 'NEXTCLOUD_PUBLIC_URL no está definido en .env.'
+
+    info 'Configurando el conector OnlyOffice...'
+    onlyoffice_log=$(mktemp)
+    if bash set_config.sh --apply \
+        --public-url "$public_url" \
+        --allow-local-remote-servers \
+        --install-app >"$onlyoffice_log" 2>&1; then
+        rm -f "$onlyoffice_log"
+        ok 'OnlyOffice agregado y configurado en la instalación existente.'
+    else
+        printf '\n'
+        cat "$onlyoffice_log"
+        rm -f "$onlyoffice_log"
+        die 'OnlyOffice arrancó, pero el conector de Nextcloud requiere atención.'
+    fi
+
+    say
+    say 'Actualización completada'
+    say '======================'
+    say "URL: $public_url"
+    say 'OnlyOffice: activado'
+    exit 0
+fi
+
 if [[ -z $timezone ]]; then
     if [[ -r /etc/timezone ]]; then
         timezone=$(head -n 1 /etc/timezone | tr -d '\r\n')
@@ -300,10 +416,6 @@ if [[ -f .env ]]; then
     else
         die '.env ya existe. Use --force-config solo si realmente desea reemplazarlo.'
     fi
-fi
-
-if nonempty_dir db || [[ -f nextcloud/config/config.php ]]; then
-    die 'Se detectó una instalación existente. Este instalador inicial no modifica instalaciones con datos.'
 fi
 
 info 'Generando configuración segura...'
