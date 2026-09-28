@@ -10,7 +10,10 @@ RUN apk add --no-cache \
     coreutils \
     docker-cli \
     docker-cli-compose \
+    git \
     gzip \
+    jq \
+    openssl \
     tar
 
 COPY requirements.txt .
@@ -18,6 +21,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
 COPY backup_job.py .
+COPY update_job.py .
 COPY templates ./templates
 COPY static ./static
 
