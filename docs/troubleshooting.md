@@ -161,6 +161,15 @@ y proxies confiables.
 
 ## OnlyOffice no abre documentos
 
+Primero confirme que el perfil esté activo:
+
+```sh
+docker compose config --services
+```
+
+La salida debe incluir `onlyoffice`. Si no aparece, añada `onlyoffice` a
+`COMPOSE_PROFILES` y vuelva a levantar el stack.
+
 ```sh
 docker compose ps onlyoffice web app
 docker compose logs --tail=200 onlyoffice web app
