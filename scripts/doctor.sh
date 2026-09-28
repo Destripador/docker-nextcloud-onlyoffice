@@ -416,14 +416,17 @@ if [[ $config_valid == true && $docker_ready == true ]]; then
         error 'Nextcloud: servicio app no está en ejecución'
     fi
 
-    if is_running web && run_timeout 15 "${compose[@]}" exec -T web nginx -t >/dev/null 2>&1; then
+    printf '[INFO] Comprobando Nginx de Nextcloud...\n'
+    web_container_id=$("${compose[@]}" ps --status running --quiet web 2>/dev/null | head -n 1)
+    if [[ -n $web_container_id ]] && run_timeout 8 docker exec "$web_container_id" nginx -t >/dev/null 2>&1; then
         ok 'Nginx de Nextcloud'
     else
-        error 'Nginx de Nextcloud: detenido o configuración inválida'
+        error 'Nginx de Nextcloud: detenido, timeout o configuración inválida'
     fi
 
-    if is_running web; then
-        if run_timeout 15 "${compose[@]}" exec -T web sh -ec \
+    if is_running web && [[ -n ${web_container_id:-} ]]; then
+        printf '[INFO] Comprobando acceso de Nginx a core/apps...\n'
+        if run_timeout 8 docker exec "$web_container_id" sh -ec \
             'test -r /var/www/html/index.php && test -r /var/www/html/status.php && test -x /var/www/html/apps && test -x /var/www/html/custom_apps' \
             >/dev/null 2>&1; then
             ok 'Nginx puede leer core y atravesar directorios de apps'
@@ -431,12 +434,16 @@ if [[ $config_valid == true && $docker_ready == true ]]; then
             error 'Nginx no puede leer core/apps; revise permisos de nextcloud/page/web, nextcloud/apps y nextcloud/custom_apps'
         fi
     fi
+    unset web_container_id
 
-    if is_running proxy && run_timeout 15 "${compose[@]}" exec -T proxy nginx -t >/dev/null 2>&1; then
+    printf '[INFO] Comprobando nginx-proxy...\n'
+    proxy_container_id=$("${compose[@]}" ps --status running --quiet proxy 2>/dev/null | head -n 1)
+    if [[ -n $proxy_container_id ]] && run_timeout 8 docker exec "$proxy_container_id" nginx -t >/dev/null 2>&1; then
         ok 'nginx-proxy'
     else
-        error 'nginx-proxy: detenido o configuración inválida'
+        error 'nginx-proxy: detenido, timeout o configuración inválida'
     fi
+    unset proxy_container_id
 
     if is_running app && is_running web && nextcloud_status=$(run_timeout 15 "${compose[@]}" exec -T app php -r '
         $context = stream_context_create(["http" => ["timeout" => 5, "ignore_errors" => true]]);
