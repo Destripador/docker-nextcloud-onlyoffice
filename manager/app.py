@@ -2,8 +2,11 @@ import hmac
 import json
 import os
 import secrets
+import subprocess
+import sys
 import time
 from functools import wraps
+from pathlib import Path
 
 import docker
 from docker.errors import APIError, DockerException, NotFound
@@ -14,6 +17,7 @@ ADMIN_USER = os.environ.get("MANAGER_ADMIN_USER", "admin")
 ADMIN_PASSWORD = os.environ.get("MANAGER_ADMIN_PASSWORD", "")
 SECRET_KEY = os.environ.get("MANAGER_SECRET_KEY", "")
 COOKIE_SECURE = os.environ.get("MANAGER_COOKIE_SECURE", "false").lower() == "true"
+PROJECT_ROOT = Path(os.environ.get("MANAGER_PROJECT_ROOT", "/project")).resolve()
 
 if len(SECRET_KEY) < 32:
     raise RuntimeError("MANAGER_SECRET_KEY debe tener al menos 32 caracteres")
@@ -125,6 +129,71 @@ def nextcloud_status():
         return json.loads(output)
     except (ValueError, json.JSONDecodeError):
         return None
+
+
+def human_size(total):
+    units = ["B", "KiB", "MiB", "GiB", "TiB"]
+    value = float(total)
+    for unit in units:
+        if value < 1024 or unit == units[-1]:
+            return f"{value:.1f} {unit}" if unit != "B" else f"{int(value)} B"
+        value /= 1024
+    return f"{total} B"
+
+
+def backup_state():
+    state_dir = PROJECT_ROOT / ".manager"
+    status_path = state_dir / "backup.status.json"
+    lock_path = state_dir / "backup.lock"
+    payload = {"state": "running" if lock_path.exists() else "idle"}
+    if status_path.is_file():
+        try:
+            stored = json.loads(status_path.read_text(encoding="utf-8"))
+            if not lock_path.exists():
+                payload = stored
+            else:
+                payload.update(stored)
+                payload["state"] = "running"
+        except (OSError, ValueError, json.JSONDecodeError):
+            pass
+    return payload
+
+
+def backup_inventory():
+    root = PROJECT_ROOT / "backups"
+    items = []
+    if not root.is_dir():
+        return items
+    for path in sorted(root.glob("nextcloud-*"), reverse=True):
+        if not path.is_dir():
+            continue
+        size = 0
+        try:
+            size = sum(p.stat().st_size for p in path.rglob("*") if p.is_file())
+        except OSError:
+            pass
+        complete = all(
+            (path / name).is_file()
+            for name in ("SHA256SUMS", "nextcloud.sql.gz", "files.tar")
+        )
+        items.append(
+            {
+                "name": path.name,
+                "size": human_size(size),
+                "complete": complete,
+            }
+        )
+    return items[:25]
+
+
+def safe_backup_dir(name):
+    if not name.startswith("nextcloud-") or "/" in name or "\\" in name:
+        abort(404)
+    root = (PROJECT_ROOT / "backups").resolve()
+    path = (root / name).resolve()
+    if path.parent != root or not path.is_dir():
+        abort(404)
+    return path
 
 
 def diagnostics():
@@ -250,6 +319,98 @@ def dashboard():
         nc=nextcloud_status(),
         project=PROJECT,
     )
+
+
+@app.get("/backups")
+@login_required
+def backups_view():
+    log_path = PROJECT_ROOT / ".manager" / "backup.log"
+    log_tail = ""
+    if log_path.is_file():
+        try:
+            lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+            log_tail = "\n".join(lines[-80:])
+        except OSError:
+            pass
+    return render_template(
+        "backups.html",
+        backups=backup_inventory(),
+        backup_state=backup_state(),
+        log_tail=log_tail,
+        project=PROJECT,
+    )
+
+
+@app.post("/backups/create")
+@login_required
+def backup_create():
+    require_csrf()
+    state_dir = PROJECT_ROOT / ".manager"
+    state_dir.mkdir(mode=0o700, exist_ok=True)
+    lock_path = state_dir / "backup.lock"
+
+    try:
+        fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        os.close(fd)
+    except FileExistsError:
+        flash("Ya hay un backup en ejecución.", "error")
+        return redirect(url_for("backups_view"))
+
+    try:
+        subprocess.Popen(
+            [sys.executable, "/app/backup_job.py", str(PROJECT_ROOT)],
+            cwd=PROJECT_ROOT,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except OSError as exc:
+        try:
+            lock_path.unlink()
+        except FileNotFoundError:
+            pass
+        flash(f"No se pudo iniciar el backup: {exc}", "error")
+        return redirect(url_for("backups_view"))
+
+    flash("Backup iniciado en segundo plano.", "success")
+    return redirect(url_for("backups_view"))
+
+
+@app.post("/backups/<name>/verify")
+@login_required
+def backup_verify(name):
+    require_csrf()
+    path = safe_backup_dir(name)
+    manifest = path / "SHA256SUMS"
+    sql = path / "nextcloud.sql.gz"
+    if not manifest.is_file() or not sql.is_file():
+        flash("El backup no contiene manifiesto o dump SQL completo.", "error")
+        return redirect(url_for("backups_view"))
+
+    manifest_check = subprocess.run(
+        ["sha256sum", "--check", "--strict", "SHA256SUMS"],
+        cwd=path,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        timeout=120,
+        check=False,
+    )
+    gzip_check = subprocess.run(
+        ["gzip", "-t", "nextcloud.sql.gz"],
+        cwd=path,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        timeout=120,
+        check=False,
+    )
+    if manifest_check.returncode == 0 and gzip_check.returncode == 0:
+        flash(f"{name}: hashes y dump SQL verificados correctamente.", "success")
+    else:
+        flash(f"{name}: la verificación falló. Revise el backup antes de restaurar.", "error")
+    return redirect(url_for("backups_view"))
 
 
 @app.get("/diagnostics")
