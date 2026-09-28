@@ -88,7 +88,15 @@ cd docker-nextcloud-onlyoffice
 umask 077
 cp .env.example .env
 chmod 600 .env
+umask 022
 ```
+
+`umask 077` se usa únicamente para crear `.env`. Restáurelo antes de crear
+directorios persistentes: Nginx se ejecuta con un usuario distinto al de
+Nextcloud y necesita poder atravesar y leer los bind mounts que contienen el
+core y los assets. Mantener un umask restrictivo durante el resto de la
+instalación puede provocar errores `403 Permission denied` y respuestas 404
+para archivos CSS/JS.
 
 Edite `.env`, sustituya el dominio y el correo, y complete todos los secretos
 vacíos. Compose se niega a renderizar mientras falte alguno.
@@ -99,7 +107,13 @@ openssl rand -hex 32
 ```
 
 No pegue secretos en el Compose, un issue, capturas o comandos que queden en el
-historial del shell. El mapa completo de variables está en
+historial del shell. Complete y revise el archivo `.env` **antes del primer
+arranque de MariaDB**. Las variables `MYSQL_PASSWORD` y
+`MYSQL_ROOT_PASSWORD` inicializan las cuentas cuando `db/` está vacío; cambiar
+esas variables después no cambia automáticamente las credenciales almacenadas
+en un datadir existente.
+
+El mapa completo de variables está en
 [docs/configuration.md](docs/configuration.md).
 
 ### 2. Preparar persistencia y red
