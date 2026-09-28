@@ -56,6 +56,18 @@ done
 grep -qx '!config/php-fpm/zz-nextcloud.conf' .dockerignore     || die '.dockerignore no incluye config/php-fpm/zz-nextcloud.conf'
 ok 'Contexto de build requerido presente'
 
+if [[ -e docker-compose.yml ]]; then
+    if [[ -L docker-compose.yml ]]; then
+        [[ $(readlink docker-compose.yml) == compose.yaml ]] || die 'docker-compose.yml debe apuntar a compose.yaml'
+    else
+        cmp -s compose.yaml docker-compose.yml || die 'docker-compose.yml diverge de compose.yaml'
+    fi
+    ok 'Compose legado no diverge de compose.yaml'
+fi
+
+bash manage.sh --help >/dev/null
+ok 'Ayuda de manage.sh disponible sin runtime'
+
 command -v docker >/dev/null 2>&1 || die 'Docker no está disponible'
 docker compose version >/dev/null 2>&1 || die 'Docker Compose V2 no está disponible'
 
