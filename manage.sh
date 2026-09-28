@@ -21,6 +21,8 @@ Comandos:
   rebuild         Reconstruye la imagen de Nextcloud y recrea app/web
   onlyoffice-on   Activa OnlyOffice en una instalación existente
   onlyoffice-off  Detiene OnlyOffice y lo quita del perfil activo
+  dev-on          Activa debug de Nextcloud y desactiva OPcache
+  dev-off         Desactiva debug y restaura OPcache normal
   manager-on      Activa el panel web administrativo local
   manager-off     Detiene el panel y lo quita del perfil activo
   refresh         Reaplica las imágenes actuales sin cambiar versiones
@@ -172,6 +174,30 @@ case "${1:-}" in
     chmod 600 "$backup"
     set_env COMPOSE_PROFILES "$new_profiles"
     echo "[OK] OnlyOffice desactivado. La app de Nextcloud permanece instalada."
+    echo "[INFO] Copia de .env: $backup"
+    ;;
+  dev-on)
+    backup=".env.bak.$(date +%Y%m%d-%H%M%S)"
+    cp .env "$backup"
+    chmod 600 "$backup"
+    set_env NEXTCLOUD_DEV_MODE true
+    echo "[INFO] Reconstruyendo app con soporte de desarrollo..."
+    "${compose[@]}" build app
+    "${compose[@]}" up -d --force-recreate app web
+    echo "[OK] Modo desarrollo activado."
+    echo "[INFO] Nextcloud debug=true; OPcache deshabilitado."
+    echo "[INFO] Copia de .env: $backup"
+    ;;
+  dev-off)
+    backup=".env.bak.$(date +%Y%m%d-%H%M%S)"
+    cp .env "$backup"
+    chmod 600 "$backup"
+    set_env NEXTCLOUD_DEV_MODE false
+    echo "[INFO] Aplicando modo normal..."
+    "${compose[@]}" build app
+    "${compose[@]}" up -d --force-recreate app web
+    echo "[OK] Modo desarrollo desactivado."
+    echo "[INFO] El fragmento debug se retirará y OPcache volverá a la configuración normal."
     echo "[INFO] Copia de .env: $backup"
     ;;
   manager-on)
