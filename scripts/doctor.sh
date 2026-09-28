@@ -472,62 +472,8 @@ if [[ $config_valid == true && $docker_ready == true ]]; then
             redis_result=$(run_timeout 8 docker exec "$redis_container_id" sh -ec \
                 'export REDISCLI_AUTH="$REDIS_PASSWORD"; exec redis-cli ping' 2>/dev/null || true)
         fi
-        redis_result=${redis_result//fi
-
-if disk_line=$(df -Pk "$project_dir" 2>/dev/null | awk 'NR == 2 { print $4 "|" $5 }'); then
-    available_kb=${disk_line%%|*}
-    used_percent=${disk_line##*|}
-    used_percent=${used_percent%%%}
-    available_human=$(df -hP "$project_dir" 2>/dev/null | awk 'NR == 2 { print $4 }')
-    if [[ $used_percent =~ ^[0-9]+$ ]] && ((used_percent >= 90)); then
-        error "Filesystem: ${available_human:-?} libres, $used_percent% usado"
-    elif [[ $used_percent =~ ^[0-9]+$ ]] && ((used_percent >= 80)); then
-        warn "Filesystem: ${available_human:-?} libres, $used_percent% usado"
-    elif [[ $available_kb =~ ^[0-9]+$ ]]; then
-        ok "Filesystem: ${available_human:-?} libres, ${used_percent:-?}% usado"
-    else
-        warn 'Filesystem: no se pudo interpretar el espacio disponible'
-    fi
-else
-    error 'Filesystem: no se pudo consultar el espacio disponible'
-fi
-
-if ((error_count > 0)); then
-    printf '[ERROR] Resumen: %d OK, %d WARN, %d ERROR\n' \
-        "$ok_count" "$warn_count" "$error_count"
-    exit 1
-fi
-
-printf '[OK] Resumen: %d OK, %d WARN, 0 ERROR\n' "$ok_count" "$warn_count"
-\r'/}
-        redis_result=${redis_result//fi
-
-if disk_line=$(df -Pk "$project_dir" 2>/dev/null | awk 'NR == 2 { print $4 "|" $5 }'); then
-    available_kb=${disk_line%%|*}
-    used_percent=${disk_line##*|}
-    used_percent=${used_percent%%%}
-    available_human=$(df -hP "$project_dir" 2>/dev/null | awk 'NR == 2 { print $4 }')
-    if [[ $used_percent =~ ^[0-9]+$ ]] && ((used_percent >= 90)); then
-        error "Filesystem: ${available_human:-?} libres, $used_percent% usado"
-    elif [[ $used_percent =~ ^[0-9]+$ ]] && ((used_percent >= 80)); then
-        warn "Filesystem: ${available_human:-?} libres, $used_percent% usado"
-    elif [[ $available_kb =~ ^[0-9]+$ ]]; then
-        ok "Filesystem: ${available_human:-?} libres, ${used_percent:-?}% usado"
-    else
-        warn 'Filesystem: no se pudo interpretar el espacio disponible'
-    fi
-else
-    error 'Filesystem: no se pudo consultar el espacio disponible'
-fi
-
-if ((error_count > 0)); then
-    printf '[ERROR] Resumen: %d OK, %d WARN, %d ERROR\n' \
-        "$ok_count" "$warn_count" "$error_count"
-    exit 1
-fi
-
-printf '[OK] Resumen: %d OK, %d WARN, 0 ERROR\n' "$ok_count" "$warn_count"
-\n'/}
+        redis_result=${redis_result//$'\r'/}
+        redis_result=${redis_result//$'\n'/}
         [[ $redis_result == PONG ]] && ok 'Redis' || error 'Redis: no responde PONG'
         unset redis_container_id redis_result
     else
