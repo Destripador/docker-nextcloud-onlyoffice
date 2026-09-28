@@ -56,6 +56,7 @@ done
 
 grep -qx '!config/php-fpm/zz-nextcloud.conf' .dockerignore     || die '.dockerignore no incluye config/php-fpm/zz-nextcloud.conf'
 [[ -r scripts/start-nextcloud.sh ]] || die 'Falta scripts/start-nextcloud.sh'
+grep -qx '!scripts/start-nextcloud.sh' .dockerignore || die '.dockerignore excluye scripts/start-nextcloud.sh del build'
 grep -q 'NEXTCLOUD_DEV_MODE' compose.yaml || die 'Compose no expone NEXTCLOUD_DEV_MODE'
 grep -q 'NEXTCLOUD_DEV_MODE=false' .env.example || die '.env.example no define NEXTCLOUD_DEV_MODE=false'
 ok 'Contexto de build requerido presente'
