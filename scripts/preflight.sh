@@ -339,7 +339,7 @@ done
 
 section 'Red y puertos'
 
-compose=(docker compose --project-directory "$project_dir")
+compose=(docker compose --project-directory "$project_dir" -f "$project_dir/compose.yaml")
 compose_running=false
 if [[ $docker_ready == true && $compose_ready == true && -f compose.yaml && -f $env_file ]]; then
     running_services=$("${compose[@]}" ps --status running --services 2>/dev/null || true)
