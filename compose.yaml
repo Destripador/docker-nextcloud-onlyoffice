@@ -209,6 +209,40 @@ services:
       start_period: 60s
     logging: *default-logging
 
+  manager:
+    profiles:
+      - manager
+    build:
+      context: ./manager
+      dockerfile: Dockerfile
+    image: "${MANAGER_IMAGE:-nextcloud-stack-manager:0.1.0}"
+    environment:
+      COMPOSE_PROJECT_NAME: "${COMPOSE_PROJECT_NAME:-nextcloud}"
+      MANAGER_ADMIN_USER: "${MANAGER_ADMIN_USER:-admin}"
+      MANAGER_ADMIN_PASSWORD: "${MANAGER_ADMIN_PASSWORD:-}"
+      MANAGER_SECRET_KEY: "${MANAGER_SECRET_KEY:-}"
+      MANAGER_COOKIE_SECURE: "${MANAGER_COOKIE_SECURE:-false}"
+      TZ: "${TZ:-UTC}"
+    ports:
+      - "${MANAGER_BIND_ADDRESS:-127.0.0.1}:${MANAGER_PORT:-8090}:8090"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - app-tier
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/healthz', timeout=3).read()"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging: *default-logging
+
+
 networks:
   backend:
     internal: true
