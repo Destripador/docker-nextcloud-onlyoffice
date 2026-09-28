@@ -402,6 +402,25 @@ fi
 
 ok 'Contenedores iniciados.'
 
+onlyoffice_config_status=0
+if [[ $onlyoffice == true ]]; then
+    info 'Configurando OnlyOffice dentro de Nextcloud...'
+    onlyoffice_log=$(mktemp)
+    if bash set_config.sh --apply \
+        --public-url "$protocol://$domain" \
+        --allow-local-remote-servers \
+        --install-app >"$onlyoffice_log" 2>&1; then
+        ok 'Conector OnlyOffice instalado y configurado.'
+        rm -f "$onlyoffice_log"
+    else
+        onlyoffice_config_status=$?
+        warn 'Document Server arrancó, pero el conector de Nextcloud no pudo configurarse.'
+        printf '\nDetalle de OnlyOffice:\n\n'
+        cat "$onlyoffice_log"
+        rm -f "$onlyoffice_log"
+    fi
+fi
+
 doctor_status=0
 if [[ -f scripts/doctor.sh ]]; then
     info 'Verificando la instalación...'
@@ -440,6 +459,13 @@ else
 fi
 say "OnlyOffice: $([[ $onlyoffice == true ]] && printf 'activado' || printf 'desactivado')"
 say "HTTPS automático: $([[ $acme == true ]] && printf 'activado' || printf 'desactivado')"
+
+if ((onlyoffice_config_status != 0)); then
+    warn 'Nextcloud está funcionando, pero OnlyOffice requiere atención.'
+    say 'Puede reintentar con:'
+    say "bash set_config.sh --apply --public-url $protocol://$domain --allow-local-remote-servers --install-app"
+    exit 1
+fi
 
 if ((doctor_status != 0)); then
     warn 'Los contenedores arrancaron, pero la comprobación final requiere atención.'
