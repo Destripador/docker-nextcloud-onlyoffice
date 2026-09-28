@@ -15,6 +15,7 @@ Comandos:
   stop     Detiene el stack sin borrar datos
   restart  Reinicia el stack
   doctor          Ejecuta el diagnóstico
+  backup           Crea un backup consistente
   logs [servicio]  Sigue logs; sin servicio muestra todos
   rebuild         Reconstruye la imagen de Nextcloud y recrea app/web
   onlyoffice-on   Activa OnlyOffice en una instalación existente
@@ -83,6 +84,9 @@ case "${1:-}" in
     ;;
   doctor)
     bash scripts/doctor.sh
+    ;;
+  backup)
+    exec bash scripts/backup.sh
     ;;
   logs)
     if [[ -n ${2:-} ]]; then
