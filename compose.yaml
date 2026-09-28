@@ -180,10 +180,12 @@ services:
     logging: *default-logging
 
   onlyoffice:
-    image: "${ONLYOFFICE_IMAGE:?Defina ONLYOFFICE_IMAGE en .env}"
+    profiles:
+      - onlyoffice
+    image: "${ONLYOFFICE_IMAGE:-onlyoffice/documentserver:9.4.0.1}"
     environment:
       JWT_ENABLED: "true"
-      JWT_SECRET: "${ONLYOFFICE_JWT_SECRET:?Defina ONLYOFFICE_JWT_SECRET en .env}"
+      JWT_SECRET: "${ONLYOFFICE_JWT_SECRET:-}"
       JWT_HEADER: AuthorizationJwt
       JWT_IN_BODY: "true"
       TZ: "${TZ:-UTC}"
