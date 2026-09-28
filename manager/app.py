@@ -258,6 +258,7 @@ def env_public_values():
         "ACME_COMPANION_IMAGE",
         "ONLYOFFICE_IMAGE",
         "COMPOSE_PROFILES",
+        "NEXTCLOUD_DEV_MODE",
     ]
     values = {}
     env_path = PROJECT_ROOT / ".env"
@@ -338,6 +339,7 @@ def configuration_values():
         "timezone": env.get("TZ", "UTC"),
         "php_memory": env.get("PHP_MEMORY_LIMIT", "1024M"),
         "php_upload": env.get("PHP_UPLOAD_LIMIT", "10G"),
+        "dev_mode": env.get("NEXTCLOUD_DEV_MODE", "false").lower() == "true",
         "acme_email": env.get("ACME_EMAIL", ""),
         "onlyoffice": "onlyoffice" in profiles,
         "acme": "acme" in profiles,
@@ -360,6 +362,7 @@ def validate_configuration(form):
     php_memory = form.get("php_memory", "").strip().upper()
     php_upload = form.get("php_upload", "").strip().upper()
     acme_email = form.get("acme_email", "").strip()
+    enable_dev_mode = form.get("dev_mode") == "on"
     enable_onlyoffice = form.get("onlyoffice") == "on"
     enable_acme = form.get("acme") == "on"
 
@@ -399,6 +402,7 @@ def validate_configuration(form):
         "TZ": timezone_name,
         "PHP_MEMORY_LIMIT": php_memory,
         "PHP_UPLOAD_LIMIT": php_upload,
+        "NEXTCLOUD_DEV_MODE": "true" if enable_dev_mode else "false",
         "ACME_EMAIL": acme_email,
         "COMPOSE_PROFILES": ",".join(profiles),
     }

@@ -10,3 +10,9 @@
 config/**
 !config/php-fpm/
 !config/php-fpm/zz-nextcloud.conf
+
+
+# Script de arranque requerido para el modo desarrollo.
+!scripts/
+scripts/**
+!scripts/start-nextcloud.sh

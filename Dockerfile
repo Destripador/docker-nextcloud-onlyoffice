@@ -42,9 +42,11 @@ RUN set -eux; \
 
 COPY supervisord.conf /supervisord.conf
 COPY config/php-fpm/zz-nextcloud.conf /usr/local/etc/php-fpm.d/zz-nextcloud.conf
+COPY scripts/start-nextcloud.sh /usr/local/bin/start-nextcloud
+RUN chmod 755 /usr/local/bin/start-nextcloud
 
 # Se reemplaza el CMD oficial, pero se conserva su entrypoint. Esta variable
 # mantiene la inicialización/actualización antes de que Supervisor arranque FPM.
 ENV NEXTCLOUD_UPDATE=1
 
-CMD ["/usr/bin/supervisord", "-c", "/supervisord.conf"]
+CMD ["/usr/local/bin/start-nextcloud"]

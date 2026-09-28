@@ -202,3 +202,26 @@ integración más tarde con `set_config.sh`.
 Para desarrollo local, `set_config.sh` admite una URL pública HTTP; en
 producción se mantiene HTTPS.
 
+
+
+## Modo desarrollo
+
+Los presets `--dev` y `--dev-full` activan automáticamente:
+
+```ini
+NEXTCLOUD_DEV_MODE=true
+```
+
+Al arrancar `app`, esto habilita `debug => true` y `loglevel => 0` en
+Nextcloud, desactiva OPcache para PHP-FPM/CLI y activa la visualización de
+errores PHP. No use este modo en servidores públicos.
+
+En una instalación existente puede alternarlo con:
+
+```sh
+bash manage.sh dev-on
+bash manage.sh dev-off
+```
+
+Ambos comandos guardan una copia de `.env`, reconstruyen la imagen `app` y
+recrean `app/web` para aplicar el cambio.

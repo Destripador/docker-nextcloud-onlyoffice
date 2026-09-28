@@ -18,6 +18,7 @@ admin_user=admin
 admin_password=
 timezone=
 onlyoffice_choice=
+dev_mode=false
 no_start=false
 force_config=false
 generated_admin_password=false
@@ -222,16 +223,19 @@ case $mode in
         protocol=http
         acme=false
         onlyoffice=false
+        dev_mode=true
         ;;
     dev-full)
         domain=${domain:-localhost}
         protocol=http
         acme=false
         onlyoffice=true
+        dev_mode=true
         ;;
     production)
         protocol=https
         acme=true
+        dev_mode=false
         if [[ -z $domain ]]; then
             domain=$(ask_value 'Dominio público (ej. nube.example.com)' '')
         fi
@@ -253,6 +257,11 @@ case $mode in
         ;;
     custom)
         [[ -n $domain ]] || domain=$(ask_value 'Dominio, IP o localhost' 'localhost')
+        if ask_yes_no '¿Activar modo desarrollo (debug de Nextcloud y OPcache deshabilitado)?' no; then
+            dev_mode=true
+        else
+            dev_mode=false
+        fi
         if ask_yes_no '¿Usar HTTPS automático con ACME?' no; then
             acme=true
             protocol=https
@@ -454,6 +463,7 @@ set_env NEXTCLOUD_ADMIN_PASSWORD "$admin_password"
 set_env REDIS_PASSWORD "$redis_password"
 set_env ONLYOFFICE_JWT_SECRET "$onlyoffice_jwt"
 set_env TZ "$timezone"
+set_env NEXTCLOUD_DEV_MODE "$dev_mode"
 
 unset mysql_password mysql_root_password redis_password onlyoffice_jwt
 umask 022
@@ -572,6 +582,7 @@ else
 fi
 say "OnlyOffice: $([[ $onlyoffice == true ]] && printf 'activado' || printf 'desactivado')"
 say "HTTPS automático: $([[ $acme == true ]] && printf 'activado' || printf 'desactivado')"
+say "Modo desarrollo: $([[ $dev_mode == true ]] && printf 'activado' || printf 'desactivado')"
 
 if ((onlyoffice_config_status != 0)); then
     warn 'Nextcloud está funcionando, pero OnlyOffice requiere atención.'

@@ -15,7 +15,8 @@
 - panel web opcional con autenticación, CSRF y bind local por defecto;
 - métricas del host y contenedores;
 - administración web de backups, actualizaciones y configuración no sensible;
-- administración acotada de usuarios y apps de Nextcloud mediante OCC.
+- administración acotada de usuarios y apps de Nextcloud mediante OCC;
+- modo de desarrollo explícito con debug de Nextcloud y OPcache deshabilitado.
 
 ### Changed
 

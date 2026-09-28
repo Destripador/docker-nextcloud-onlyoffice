@@ -88,6 +88,7 @@ services:
       OVERWRITECLIURL: "${NEXTCLOUD_PUBLIC_URL:?Defina NEXTCLOUD_PUBLIC_URL en .env}"
       PHP_MEMORY_LIMIT: "${PHP_MEMORY_LIMIT:-1024M}"
       PHP_UPLOAD_LIMIT: "${PHP_UPLOAD_LIMIT:-10G}"
+      NEXTCLOUD_DEV_MODE: "${NEXTCLOUD_DEV_MODE:-false}"
       TZ: "${TZ:-UTC}"
     volumes:
       - ./nextcloud/page/web:/var/www/html
