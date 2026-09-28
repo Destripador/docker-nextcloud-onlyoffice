@@ -9,6 +9,8 @@ La primera versión permite:
 
 - iniciar, detener y reiniciar servicios del proyecto;
 - consultar estado, health e imagen efectiva;
+- mostrar CPU, RAM, disco libre, tamaños de data/DB/backups y consumo por contenedor;
+- mostrar uptime, memoria y CPU instantánea de cada servicio;
 - mostrar la versión de Nextcloud mediante `occ status`;
 - ejecutar una vista de diagnóstico para MariaDB, Redis, Nginx, proxy, OCC y OnlyOffice;
 - activar o desactivar el modo mantenimiento de Nextcloud;
@@ -168,3 +170,19 @@ datos; ante un fallo debe usarse el backup creado inmediatamente antes.
 Mientras hay un backup o una actualización activa, el panel bloquea nuevas
 operaciones de backup, update, mantenimiento y start/stop/restart de servicios
 para evitar interferencias.
+
+
+## Métricas del sistema
+
+El dashboard muestra un resumen de recursos usando información de Docker y del
+filesystem donde vive el checkout:
+
+- CPU y memoria total visibles por Docker;
+- espacio total/libre/usado del filesystem del proyecto;
+- tamaño de `data/`, `db/` y `backups/`;
+- tamaño lógico de la base Nextcloud consultado desde `information_schema`;
+- CPU, memoria y uptime por contenedor.
+
+Los tamaños de directorio se calculan con `du` y tienen timeout para evitar que
+una ruta muy grande bloquee indefinidamente el panel. Las métricas son
+informativas y no sustituyen una plataforma de monitoreo histórico.
