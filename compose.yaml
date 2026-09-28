@@ -222,11 +222,13 @@ services:
       MANAGER_ADMIN_PASSWORD: "${MANAGER_ADMIN_PASSWORD:-}"
       MANAGER_SECRET_KEY: "${MANAGER_SECRET_KEY:-}"
       MANAGER_COOKIE_SECURE: "${MANAGER_COOKIE_SECURE:-false}"
+      MANAGER_PROJECT_ROOT: "${MANAGER_PROJECT_HOST_PATH:-/project}"
       TZ: "${TZ:-UTC}"
     ports:
       - "${MANAGER_BIND_ADDRESS:-127.0.0.1}:${MANAGER_PORT:-8090}:8090"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - "${MANAGER_PROJECT_HOST_PATH:-.}:${MANAGER_PROJECT_HOST_PATH:-/project}"
     networks:
       - app-tier
     restart: unless-stopped
