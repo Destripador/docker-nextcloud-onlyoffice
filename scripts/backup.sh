@@ -67,6 +67,7 @@ cleanup() {
         done
     fi
     if ((exit_code != 0)); then
+        rm -f "$backup_dir"/*.part 2>/dev/null || true
         printf '[ERROR] Backup incompleto: %s\n' "$backup_dir" >&2
     fi
     exit "$exit_code"
@@ -80,6 +81,17 @@ for required in db app; do
         exit 1
     }
 done
+
+app_container=$("${compose[@]}" ps --all --quiet app 2>/dev/null | head -n 1)
+[[ -n $app_container ]] || {
+    printf '[ERROR] No se pudo localizar el contenedor app para preparar el archivado\n' >&2
+    exit 1
+}
+app_image_id=$(docker inspect --format '{{.Image}}' "$app_container" 2>/dev/null || true)
+[[ -n $app_image_id ]] || {
+    printf '[ERROR] No se pudo resolver la imagen local de app\n' >&2
+    exit 1
+}
 
 printf '[INFO] Guardando metadatos...\n'
 "${compose[@]}" config --services > "$backup_dir/services.txt"
@@ -136,7 +148,20 @@ for path in data nextcloud config/redis config/onlyoffice config/proxy config/ac
 done
 ((${#paths[@]} > 0)) || { printf '[ERROR] No hay rutas persistentes\n' >&2; exit 1; }
 
-tar --xattrs --acls -cpf "$backup_dir/files.tar.part" "${paths[@]}"
+# Algunos bind mounts contienen archivos que el usuario del host no puede leer.
+# Se archivan desde un contenedor efímero como root, sin cambiar permisos.
+docker run --rm --user 0 \
+    --entrypoint sh \
+    -v "$root:/source:ro" \
+    -v "$backup_dir:/backup" \
+    -w /source \
+    "$app_image_id" \
+    -ec 'exec tar -cpf /backup/files.tar.part "$@"' sh "${paths[@]}"
+
+[[ -s "$backup_dir/files.tar.part" ]] || {
+    printf '[ERROR] El archivo de persistencia quedó vacío\n' >&2
+    exit 1
+}
 mv "$backup_dir/files.tar.part" "$backup_dir/files.tar"
 
 printf '[INFO] Generando manifiesto SHA-256...\n'
