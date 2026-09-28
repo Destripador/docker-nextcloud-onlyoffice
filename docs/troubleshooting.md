@@ -59,6 +59,31 @@ Compruebe:
 No active una actualización automática ni haga downgrade para silenciar un
 aviso. Obtenga un backup y siga la documentación de MariaDB.
 
+## MariaDB responde pero Nextcloud muestra Access denied
+
+Si Nextcloud muestra un error similar a:
+
+```text
+SQLSTATE[HY000] [1045] Access denied for user 'nextcloud'
+```
+
+compruebe primero las credenciales efectivas:
+
+```sh
+docker compose exec -T db sh -lc \
+  'mariadb -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -e "SELECT 1;"'
+```
+
+Si MariaDB está healthy pero esta prueba falla, el directorio `db/` probablemente
+fue inicializado con un valor anterior de `MYSQL_PASSWORD`. Cambiar `.env`
+después de la primera inicialización no cambia automáticamente la contraseña
+almacenada en MariaDB.
+
+En una instalación nueva y descartable, detenga el stack y reinicialice únicamente
+`db/` después de confirmar que no contiene datos que deba conservar. En una
+instalación con datos, cambie la contraseña dentro de MariaDB o restaure desde un
+backup; no borre el datadir.
+
 ## Redis no responde
 
 ```sh
@@ -69,6 +94,42 @@ docker compose logs --tail=200 redis
 `REDIS_PASSWORD` se inyecta tanto en Redis como en Nextcloud. Si cambió solo un
 lado mediante override, la autenticación falla. Redis no debe publicar 6379 y
 solo debe pertenecer a `backend`.
+
+## Error 403, assets 404 o MIME type text/html
+
+Si el navegador muestra `403 Forbidden`, muchos `404` bajo `/apps/` o errores
+de MIME porque un archivo CSS/JS devuelve HTML, compruebe los bind mounts:
+
+```sh
+ls -ld nextcloud nextcloud/page nextcloud/page/web \
+  nextcloud/apps nextcloud/custom_apps
+```
+
+Los directorios que Nginx debe atravesar no deben quedar creados con modo
+`0700`. Esto puede ocurrir si se ejecutó `umask 077` para proteger `.env` y no
+se restauró antes de crear la persistencia.
+
+Para una instalación afectada, revise primero el contenido y después aplique
+permisos de lectura/traversal únicamente donde corresponda:
+
+```sh
+chmod 755 nextcloud nextcloud/page nextcloud/page/web
+chmod 755 nextcloud/apps nextcloud/custom_apps
+chmod -R a+rX nextcloud/page/web nextcloud/apps nextcloud/custom_apps
+docker compose restart web
+```
+
+No use `chmod -R 777`.
+
+Puede verificar desde el propio contenedor:
+
+```sh
+docker compose exec -T web sh -ec \
+  'test -r /var/www/html/index.php &&
+   test -r /var/www/html/status.php &&
+   test -x /var/www/html/apps &&
+   test -x /var/www/html/custom_apps'
+```
 
 ## Error 502 o Nginx unhealthy
 
