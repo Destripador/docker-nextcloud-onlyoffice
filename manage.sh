@@ -29,6 +29,12 @@ EOF
 }
 
 [[ -f .env ]] || { echo "[ERROR] Falta .env. Ejecuta primero bash install.sh" >&2; exit 1; }
+[[ -r .env ]] || {
+  echo "[ERROR] .env existe pero el usuario actual no puede leerlo." >&2
+  echo "[INFO] Revisa propietario y permisos con: ls -l .env" >&2
+  echo "[INFO] Si el archivo pertenece a root por una versión anterior del manager, restaura el propietario del checkout y deja modo 600." >&2
+  exit 1
+}
 command -v docker >/dev/null 2>&1 || { echo "[ERROR] Docker no está disponible" >&2; exit 1; }
 
 env_value() {
