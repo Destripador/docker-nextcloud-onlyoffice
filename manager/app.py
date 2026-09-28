@@ -5,6 +5,7 @@ import secrets
 import subprocess
 import sys
 import time
+from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
 
@@ -238,6 +239,158 @@ def safe_backup_dir(name):
     return path
 
 
+def parse_started_at(value):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def human_duration(seconds):
+    seconds = max(0, int(seconds))
+    days, seconds = divmod(seconds, 86400)
+    hours, seconds = divmod(seconds, 3600)
+    minutes, _ = divmod(seconds, 60)
+    if days:
+        return f"{days}d {hours}h"
+    if hours:
+        return f"{hours}h {minutes}m"
+    return f"{minutes}m"
+
+
+def directory_size(path):
+    if not path.exists():
+        return None
+    try:
+        result = subprocess.run(
+            ["du", "-sk", "--", str(path)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=8,
+            check=False,
+        )
+        if result.returncode != 0:
+            return None
+        kb = int(result.stdout.split()[0])
+        return kb * 1024
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return None
+
+
+def docker_cpu_percent(stats):
+    cpu = stats.get("cpu_stats", {})
+    precpu = stats.get("precpu_stats", {})
+    cpu_delta = (
+        cpu.get("cpu_usage", {}).get("total_usage", 0)
+        - precpu.get("cpu_usage", {}).get("total_usage", 0)
+    )
+    system_delta = cpu.get("system_cpu_usage", 0) - precpu.get("system_cpu_usage", 0)
+    online = cpu.get("online_cpus") or len(cpu.get("cpu_usage", {}).get("percpu_usage") or []) or 1
+    if cpu_delta > 0 and system_delta > 0:
+        return round((cpu_delta / system_delta) * online * 100, 1)
+    return 0.0
+
+
+def system_summary():
+    summary = {
+        "host_cpus": None,
+        "host_memory": None,
+        "disk_total": None,
+        "disk_used": None,
+        "disk_free": None,
+        "disk_percent": None,
+        "data_size": None,
+        "db_files_size": None,
+        "backups_size": None,
+        "db_logical_size": None,
+        "containers": [],
+    }
+
+    try:
+        info = docker_client.info()
+        summary["host_cpus"] = info.get("NCPU")
+        summary["host_memory"] = info.get("MemTotal")
+    except DockerException:
+        pass
+
+    try:
+        stat = os.statvfs(PROJECT_ROOT)
+        total = stat.f_frsize * stat.f_blocks
+        free = stat.f_frsize * stat.f_bavail
+        used = total - free
+        summary["disk_total"] = total
+        summary["disk_used"] = used
+        summary["disk_free"] = free
+        summary["disk_percent"] = round((used / total) * 100, 1) if total else None
+    except OSError:
+        pass
+
+    summary["data_size"] = directory_size(PROJECT_ROOT / "data")
+    summary["db_files_size"] = directory_size(PROJECT_ROOT / "db")
+    summary["backups_size"] = directory_size(PROJECT_ROOT / "backups")
+
+    ok, output = exec_check(
+        "db",
+        [
+            "sh",
+            "-ec",
+            'mariadb -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -Nse '
+            '"SELECT COALESCE(SUM(data_length + index_length),0) '
+            'FROM information_schema.tables WHERE table_schema=DATABASE();"'
+        ],
+    )
+    if ok:
+        try:
+            summary["db_logical_size"] = int(output.splitlines()[-1])
+        except (ValueError, IndexError):
+            pass
+
+    now = datetime.now(timezone.utc)
+    try:
+        for container in project_containers():
+            service = container.labels.get("com.docker.compose.service")
+            if service not in SERVICES:
+                continue
+            container.reload()
+            state = container.attrs.get("State", {})
+            started = parse_started_at(state.get("StartedAt"))
+            uptime = None
+            if started and state.get("Running"):
+                uptime = human_duration((now - started).total_seconds())
+
+            memory_usage = None
+            memory_limit = None
+            cpu_percent = None
+            if state.get("Running"):
+                try:
+                    stats = container.stats(stream=False)
+                    memory = stats.get("memory_stats", {})
+                    memory_usage = memory.get("usage")
+                    memory_limit = memory.get("limit")
+                    cpu_percent = docker_cpu_percent(stats)
+                except (APIError, DockerException):
+                    pass
+
+            summary["containers"].append(
+                {
+                    "service": service,
+                    "name": SERVICES[service],
+                    "uptime": uptime,
+                    "memory_usage": memory_usage,
+                    "memory_limit": memory_limit,
+                    "cpu_percent": cpu_percent,
+                }
+            )
+    except DockerException:
+        pass
+
+    summary["containers"].sort(key=lambda item: list(SERVICES).index(item["service"]))
+    return summary
+
+
 def diagnostics():
     checks = []
 
@@ -359,6 +512,8 @@ def dashboard():
         "dashboard.html",
         cards=cards,
         nc=nextcloud_status(),
+        summary=system_summary(),
+        human_size=human_size,
         project=PROJECT,
     )
 
