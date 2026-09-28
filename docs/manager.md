@@ -242,3 +242,12 @@ la interfaz.
 
 Estas acciones también quedan bloqueadas durante backup o update para evitar
 cambios concurrentes sobre Nextcloud.
+
+
+### Propiedad de .env
+
+El manager preserva UID, GID y permisos del archivo `.env` al guardar cambios.
+Las primeras versiones de la vista de configuración podían reemplazar el archivo
+desde el contenedor y dejarlo propiedad de `root` en el host. Si una instalación
+afectada muestra `Permission denied`, restaure el propietario al usuario que
+administra el checkout y mantenga permisos `600`.
