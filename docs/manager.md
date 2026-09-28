@@ -21,11 +21,14 @@ La primera versión permite:
 - aplicar las referencias actuales de `.env` reutilizando `scripts/update.sh`;
 - exigir confirmación textual antes de actualizar y bloquear acciones concurrentes;
 - consultar la salida de la última actualización;
+- editar de forma segura una allowlist de parámetros no sensibles de `.env`;
+- consultar si los secretos esperados están configurados sin revelar su valor;
 - consultar las últimas 250 líneas de logs por servicio;
 - administrar únicamente contenedores con la etiqueta
   `com.docker.compose.project` que coincide con este stack.
 
-Restore y edición de `.env` permanecen por CLI por ahora. El panel no duplica
+Restore permanece por CLI. La edición de `.env` se limita a una allowlist de
+parámetros no sensibles; los secretos nunca se muestran. El panel no duplica
 la lógica de backup ni actualización: ejecuta los mismos `scripts/backup.sh` y
 `scripts/update.sh` usados por la CLI. Las operaciones se ejecutan en segundo
 plano y usan bloqueos para impedir que backup/update se solapen.
@@ -186,3 +189,35 @@ filesystem donde vive el checkout:
 Los tamaños de directorio se calculan con `du` y tienen timeout para evitar que
 una ruta muy grande bloquee indefinidamente el panel. Las métricas son
 informativas y no sustituyen una plataforma de monitoreo histórico.
+
+
+## Configuración administrable
+
+La vista **Configuración** permite modificar únicamente campos explícitamente
+permitidos:
+
+- dominio/host público;
+- protocolo HTTP/HTTPS;
+- zona horaria;
+- `PHP_MEMORY_LIMIT`;
+- `PHP_UPLOAD_LIMIT`;
+- perfiles `onlyoffice` y `acme`;
+- correo ACME.
+
+Al cambiar dominio se sincronizan también
+`NEXTCLOUD_TRUSTED_DOMAINS`, `NEXTCLOUD_OVERWRITE_HOST` y
+`NEXTCLOUD_PUBLIC_URL`.
+
+Antes de escribir se crea automáticamente una copia:
+
+```text
+.env.bak.manager.YYYYMMDD-HHMMSS
+```
+
+El guardado es atómico y mantiene `.env` con permisos 600. Los secretos de
+MariaDB, Redis, OnlyOffice y el propio manager no son editables ni visibles;
+solo se indica si están configurados.
+
+Guardar configuración no recrea contenedores. Después de revisar los cambios,
+use la vista **Actualizar** para aplicar las referencias y variables actuales al
+runtime con el flujo seguro ya existente.
