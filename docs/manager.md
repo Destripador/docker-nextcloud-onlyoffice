@@ -12,12 +12,18 @@ La primera versión permite:
 - mostrar la versión de Nextcloud mediante `occ status`;
 - ejecutar una vista de diagnóstico para MariaDB, Redis, Nginx, proxy, OCC y OnlyOffice;
 - activar o desactivar el modo mantenimiento de Nextcloud;
+- crear backups en segundo plano reutilizando `scripts/backup.sh`;
+- listar backups existentes, tamaño y estructura esperada;
+- verificar `SHA256SUMS` y la integridad gzip del dump SQL;
+- consultar la salida del último backup;
 - consultar las últimas 250 líneas de logs por servicio;
 - administrar únicamente contenedores con la etiqueta
   `com.docker.compose.project` que coincide con este stack.
 
-Backup, restore, update y edición de `.env` permanecen por CLI por ahora. No se
-duplicó esa lógica dentro del panel.
+Restore, update y edición de `.env` permanecen por CLI por ahora. El panel no
+duplica la lógica de backup: ejecuta el mismo `scripts/backup.sh` usado por
+`manage.sh backup`, en segundo plano y con un bloqueo para impedir dos copias
+simultáneas.
 
 ## Activación recomendada
 
@@ -64,6 +70,7 @@ credenciales automáticamente.
 MANAGER_IMAGE=nextcloud-stack-manager:0.1.0
 MANAGER_BIND_ADDRESS=127.0.0.1
 MANAGER_PORT=8090
+MANAGER_PROJECT_HOST_PATH=/ruta/absoluta/al/checkout
 MANAGER_ADMIN_USER=admin
 MANAGER_ADMIN_PASSWORD=
 MANAGER_SECRET_KEY=
@@ -111,3 +118,24 @@ manager/
 
 La UI sigue el mismo patrón del administrador de instancias CFDI: login,
 dashboard de tarjetas, acciones acotadas y vistas de detalle/logs.
+
+
+## Backups desde el panel
+
+La vista **Backups** muestra hasta 25 copias recientes bajo `backups/`. El
+botón **Crear backup** arranca `scripts/backup.sh` en segundo plano; el
+navegador puede cerrarse sin cancelar el proceso mientras el contenedor
+`manager` continúe en ejecución.
+
+El panel muestra la salida reciente del trabajo y permite **Verificar hashes**.
+La verificación ejecuta `sha256sum --check --strict SHA256SUMS` y `gzip -t`
+sobre el dump SQL.
+
+`MANAGER_PROJECT_HOST_PATH` es necesario porque Docker interpreta rutas de bind
+mount desde el host. `bash manage.sh manager-on` establece automáticamente la
+ruta absoluta actual del repositorio para evitar que el proceso de backup monte
+una ruta incorrecta.
+
+No se ofrece restauración desde la web en esta versión. Una restauración puede
+reemplazar estado completo y se mantendrá fuera del panel hasta contar con una
+confirmación reforzada y una prueba aislada del flujo.
