@@ -41,6 +41,7 @@ RUN set -eux; \
         /var/run/supervisord
 
 COPY supervisord.conf /supervisord.conf
+COPY config/php-fpm/zz-nextcloud.conf /usr/local/etc/php-fpm.d/zz-nextcloud.conf
 
 # Se reemplaza el CMD oficial, pero se conserva su entrypoint. Esta variable
 # mantiene la inicialización/actualización antes de que Supervisor arranque FPM.
