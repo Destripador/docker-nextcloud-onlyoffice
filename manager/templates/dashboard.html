@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div>
+    <h1>Estado del stack</h1>
+    <p class="muted">Vista administrativa limitada al proyecto Compose <code>{{ project }}</code>.</p>
+  </div>
+  {% if nc %}
+  <div class="nc-meta">
+    <span>Nextcloud {{ nc.versionstring or nc.version }}</span>
+    <span class="pill {{ 'ok' if nc.installed else 'bad' }}">{{ 'Instalado' if nc.installed else 'No instalado' }}</span>
+    {% if nc.maintenance %}<span class="pill warn">Mantenimiento</span>{% endif %}
+  </div>
+  {% endif %}
+</section>
+
+<section class="grid">
+{% for card in cards %}
+  <article class="card">
+    <div class="card-head">
+      <div>
+        <h2>{{ card.name }}</h2>
+        <code>{{ card.service }}</code>
+      </div>
+      <span class="dot {{ 'ok' if card.status == 'running' and card.health != 'unhealthy' else 'bad' }}"></span>
+    </div>
+    <dl>
+      <div><dt>Estado</dt><dd>{{ card.status }}</dd></div>
+      <div><dt>Health</dt><dd>{{ card.health }}</dd></div>
+      <div><dt>Imagen</dt><dd class="truncate" title="{{ card.image }}">{{ card.image }}</dd></div>
+    </dl>
+    <div class="actions">
+      {% if card.status != 'not-created' %}
+      <form method="post" action="{{ url_for('service_action', service=card.service, action='restart') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit">Reiniciar</button>
+      </form>
+      {% if card.status == 'running' %}
+      <form method="post" action="{{ url_for('service_action', service=card.service, action='stop') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="danger" type="submit">Detener</button>
+      </form>
+      {% else %}
+      <form method="post" action="{{ url_for('service_action', service=card.service, action='start') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit">Iniciar</button>
+      </form>
+      {% endif %}
+      <a class="button ghost" href="{{ url_for('logs', service=card.service) }}">Logs</a>
+      {% endif %}
+    </div>
+  </article>
+{% endfor %}
+</section>
+
+<section class="notice">
+  <strong>Alcance de esta primera versión</strong>
+  <p>El panel administra únicamente contenedores pertenecientes a este proyecto Compose. Backup, update, restore y edición de <code>.env</code> siguen disponibles por CLI mientras se agrega una capa segura para esas operaciones.</p>
+</section>
+{% endblock %}
