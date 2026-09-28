@@ -141,10 +141,10 @@ def human_size(total):
     return f"{total} B"
 
 
-def backup_state():
+def operation_state(kind):
     state_dir = PROJECT_ROOT / ".manager"
-    status_path = state_dir / "backup.status.json"
-    lock_path = state_dir / "backup.lock"
+    status_path = state_dir / f"{kind}.status.json"
+    lock_path = state_dir / f"{kind}.lock"
     payload = {"state": "running" if lock_path.exists() else "idle"}
     if status_path.is_file():
         try:
@@ -157,6 +157,48 @@ def backup_state():
         except (OSError, ValueError, json.JSONDecodeError):
             pass
     return payload
+
+
+def backup_state():
+    return operation_state("backup")
+
+
+def active_operation():
+    state_dir = PROJECT_ROOT / ".manager"
+    for kind in ("update", "backup"):
+        if (state_dir / f"{kind}.lock").exists():
+            return kind
+    return None
+
+
+def env_public_values():
+    wanted = [
+        "NEXTCLOUD_BASE_IMAGE",
+        "NEXTCLOUD_APP_IMAGE",
+        "MARIADB_IMAGE",
+        "REDIS_IMAGE",
+        "NGINX_IMAGE",
+        "NGINX_PROXY_IMAGE",
+        "ACME_COMPANION_IMAGE",
+        "ONLYOFFICE_IMAGE",
+        "COMPOSE_PROFILES",
+    ]
+    values = {}
+    env_path = PROJECT_ROOT / ".env"
+    if not env_path.is_file():
+        return values
+    try:
+        for raw in env_path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            if key in wanted:
+                values[key] = value.strip().strip('"').strip("'")
+    except OSError:
+        pass
+    return values
 
 
 def backup_inventory():
@@ -345,6 +387,10 @@ def backups_view():
 @login_required
 def backup_create():
     require_csrf()
+    running = active_operation()
+    if running:
+        flash(f"No se puede iniciar backup mientras {running} está en ejecución.", "error")
+        return redirect(url_for("backups_view"))
     state_dir = PROJECT_ROOT / ".manager"
     state_dir.mkdir(mode=0o700, exist_ok=True)
     lock_path = state_dir / "backup.lock"
@@ -413,6 +459,72 @@ def backup_verify(name):
     return redirect(url_for("backups_view"))
 
 
+@app.get("/updates")
+@login_required
+def updates_view():
+    log_path = PROJECT_ROOT / ".manager" / "update.log"
+    log_tail = ""
+    if log_path.is_file():
+        try:
+            lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+            log_tail = "\n".join(lines[-120:])
+        except OSError:
+            pass
+    return render_template(
+        "updates.html",
+        update_state=operation_state("update"),
+        active_operation=active_operation(),
+        refs=env_public_values(),
+        log_tail=log_tail,
+        project=PROJECT,
+    )
+
+
+@app.post("/updates/apply")
+@login_required
+def update_apply():
+    require_csrf()
+    confirmation = request.form.get("confirmation", "")
+    if confirmation != "ACTUALIZAR":
+        flash("Escriba ACTUALIZAR exactamente para confirmar.", "error")
+        return redirect(url_for("updates_view"))
+
+    running = active_operation()
+    if running:
+        flash(f"No se puede actualizar mientras {running} está en ejecución.", "error")
+        return redirect(url_for("updates_view"))
+
+    state_dir = PROJECT_ROOT / ".manager"
+    state_dir.mkdir(mode=0o700, exist_ok=True)
+    lock_path = state_dir / "update.lock"
+    try:
+        fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        os.close(fd)
+    except FileExistsError:
+        flash("Ya hay una actualización en ejecución.", "error")
+        return redirect(url_for("updates_view"))
+
+    try:
+        subprocess.Popen(
+            [sys.executable, "/app/update_job.py", str(PROJECT_ROOT)],
+            cwd=PROJECT_ROOT,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except OSError as exc:
+        try:
+            lock_path.unlink()
+        except FileNotFoundError:
+            pass
+        flash(f"No se pudo iniciar la actualización: {exc}", "error")
+        return redirect(url_for("updates_view"))
+
+    flash("Actualización iniciada. Se creará un backup obligatorio antes de aplicar cambios.", "success")
+    return redirect(url_for("updates_view"))
+
+
 @app.get("/diagnostics")
 @login_required
 def diagnostics_view():
@@ -431,6 +543,10 @@ def diagnostics_view():
 @login_required
 def maintenance_action(state):
     require_csrf()
+    running = active_operation()
+    if running:
+        flash(f"No se puede cambiar mantenimiento mientras {running} está en ejecución.", "error")
+        return redirect(url_for("dashboard"))
     if state not in {"on", "off"}:
         abort(404)
     ok, output = exec_check(
@@ -449,6 +565,10 @@ def maintenance_action(state):
 @login_required
 def service_action(service, action):
     require_csrf()
+    running = active_operation()
+    if running:
+        flash(f"No se pueden administrar servicios mientras {running} está en ejecución.", "error")
+        return redirect(url_for("dashboard"))
     if service not in SERVICES or action not in ACTIONS:
         abort(404)
     try:
