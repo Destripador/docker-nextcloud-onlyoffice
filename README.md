@@ -275,26 +275,24 @@ ejecutó.
 Abra la URL indicada por `NEXTCLOUD_PUBLIC_URL`. Las variables de `.env`
 realizan la instalación inicial de Nextcloud cuando el volumen está vacío.
 
-Si no activó el perfil `onlyoffice`, no hay ningún paso adicional: Document
-Server no consume RAM ni CPU y Nextcloud funciona normalmente.
+Con `install.sh`, si activó el perfil `onlyoffice`, el instalador también
+instala o habilita automáticamente la app oficial **ONLYOFFICE** y configura las
+URLs interna/pública, la cabecera JWT y el secreto del conector.
 
-Si activó `onlyoffice`, una vez que Nextcloud responda:
+Si no activó `onlyoffice`, Document Server no se crea ni consume recursos.
 
-1. instale y habilite la app oficial **ONLYOFFICE** desde Nextcloud;
-2. revise el riesgo de `allow_local_remote_servers` descrito en
-   [configuración](docs/configuration.md#integración-de-onlyoffice);
-3. configure el conector de forma explícita:
+En instalaciones manuales puede aplicar la integración después con:
 
 ```sh
 bash set_config.sh --apply \
   --public-url https://cloud.example.com \
-  --allow-local-remote-servers
+  --allow-local-remote-servers \
+  --install-app
 ```
 
-Sustituya la URL por su dominio. El script usa el Compose efectivo, no instala
-apps, no imprime el JWT y se niega a actuar sin las dos confirmaciones. Pruebe
-después la creación y edición de un documento; un healthcheck del contenedor no
-demuestra por sí solo que la integración funcione extremo a extremo.
+Para desarrollo local también se admite una URL `http://`. Pruebe después la
+creación y edición de un documento; un healthcheck correcto no demuestra por sí
+solo que la integración funcione extremo a extremo.
 
 ## Comprobaciones y administración
 
