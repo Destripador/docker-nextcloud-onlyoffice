@@ -16,6 +16,7 @@
 
 <section class="toolbar">
   <a class="button" href="{{ url_for('diagnostics_view') }}">Diagnóstico</a>
+  <a class="button ghost" href="{{ url_for('backups_view') }}">Backups</a>
   {% if nc %}
     {% if nc.maintenance %}
     <form method="post" action="{{ url_for('maintenance_action', state='off') }}">
@@ -72,6 +73,6 @@
 
 <section class="notice">
   <strong>Alcance de esta primera versión</strong>
-  <p>El panel administra únicamente contenedores pertenecientes a este proyecto Compose. Ya incluye diagnóstico y control del modo mantenimiento. Backup, update, restore y edición de <code>.env</code> siguen disponibles por CLI mientras se agrega una capa segura para esas operaciones.</p>
+  <p>El panel administra únicamente contenedores pertenecientes a este proyecto Compose. Ya incluye diagnóstico y control del modo mantenimiento. Backup ya utiliza el mismo <code>scripts/backup.sh</code> desde la interfaz. Update, restore y edición de <code>.env</code> continúan por CLI mientras se agrega una capa segura para esas operaciones.</p>
 </section>
 {% endblock %}
