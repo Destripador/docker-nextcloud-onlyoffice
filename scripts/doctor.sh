@@ -143,6 +143,36 @@ if command -v git >/dev/null 2>&1; then
     fi
 fi
 
+# Los bind mounts que Nginx sirve deben ser atravesables/legibles por un UID
+# distinto al de Nextcloud. Esto detecta el fallo típico causado por dejar
+# umask 077 activo al crear la persistencia.
+permission_paths=(
+    nextcloud/page/web
+    nextcloud/apps
+    nextcloud/custom_apps
+)
+permission_errors=0
+for permission_path in "${permission_paths[@]}"; do
+    if [[ ! -e $permission_path ]]; then
+        continue
+    fi
+    if [[ ! -d $permission_path ]]; then
+        error "Permisos: $permission_path existe pero no es un directorio"
+        ((permission_errors += 1))
+        continue
+    fi
+    if command -v stat >/dev/null 2>&1; then
+        path_mode=$(stat -c '%a' "$permission_path" 2>/dev/null || true)
+        if [[ $path_mode =~ ^[0-7]+$ ]] && (( (8#$path_mode & 005) != 005 )); then
+            error "Permisos: $permission_path tiene modo $path_mode; Nginx necesita lectura/traversal"
+            ((permission_errors += 1))
+        fi
+    fi
+done
+if ((permission_errors == 0)); then
+    ok 'Bind mounts web con permisos de directorio compatibles'
+fi
+
 if ! command -v docker >/dev/null 2>&1; then
     error 'Docker: comando no disponible'
 elif run_timeout 15 docker info >/dev/null 2>&1; then
@@ -311,7 +341,17 @@ if [[ $config_valid == true && $docker_ready == true ]]; then
         error 'MariaDB: servicio detenido o sonda fallida'
     fi
 
-    if is_running app; then
+    if is_running db; then
+        if run_timeout 15 "${compose[@]}" exec -T db sh -ec \
+            'mariadb -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -e "SELECT 1" >/dev/null' \
+            >/dev/null 2>&1; then
+            ok 'MariaDB acepta MYSQL_USER/MYSQL_PASSWORD actuales'
+        else
+            error 'MariaDB rechaza las credenciales actuales; el datadir puede haber sido inicializado con otro .env'
+        fi
+    fi
+
+        if is_running app; then
         if occ_status=$(run_timeout 20 "${compose[@]}" exec -T --user www-data app \
             php occ status --output=json --no-ansi --no-interaction 2>/dev/null); then
             if grep -Eq '"installed"[[:space:]]*:[[:space:]]*true' <<< "$occ_status"; then
@@ -336,7 +376,17 @@ if [[ $config_valid == true && $docker_ready == true ]]; then
         error 'Nginx de Nextcloud: detenido o configuración inválida'
     fi
 
-    if is_running proxy && run_timeout 15 "${compose[@]}" exec -T proxy nginx -t >/dev/null 2>&1; then
+    if is_running web; then
+        if run_timeout 15 "${compose[@]}" exec -T web sh -ec \
+            'test -r /var/www/html/index.php && test -r /var/www/html/status.php && test -x /var/www/html/apps && test -x /var/www/html/custom_apps' \
+            >/dev/null 2>&1; then
+            ok 'Nginx puede leer core y atravesar directorios de apps'
+        else
+            error 'Nginx no puede leer core/apps; revise permisos de nextcloud/page/web, nextcloud/apps y nextcloud/custom_apps'
+        fi
+    fi
+
+        if is_running proxy && run_timeout 15 "${compose[@]}" exec -T proxy nginx -t >/dev/null 2>&1; then
         ok 'nginx-proxy'
     else
         error 'nginx-proxy: detenido o configuración inválida'
