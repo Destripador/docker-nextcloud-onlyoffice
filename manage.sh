@@ -28,6 +28,13 @@ Comandos:
 EOF
 }
 
+case "${1:-}" in
+  help|-h|--help|"")
+    usage
+    exit 0
+    ;;
+esac
+
 [[ -f .env ]] || { echo "[ERROR] Falta .env. Ejecuta primero bash install.sh" >&2; exit 1; }
 [[ -r .env ]] || {
   echo "[ERROR] .env existe pero el usuario actual no puede leerlo." >&2
@@ -115,10 +122,41 @@ case "${1:-}" in
     echo "[OK] Reconstrucción completada."
     ;;
   onlyoffice-on)
-    exec bash install.sh --dev-full
+    command -v openssl >/dev/null 2>&1 || { echo "[ERROR] OpenSSL no está disponible" >&2; exit 1; }
+    profiles=$(env_value COMPOSE_PROFILES)
+    case ",$profiles," in
+      *,onlyoffice,*) ;;
+      *)
+        if [[ -z $profiles ]]; then
+          set_env COMPOSE_PROFILES onlyoffice
+        else
+          set_env COMPOSE_PROFILES "$profiles,onlyoffice"
+        fi
+        ;;
+    esac
+
+    onlyoffice_secret=$(env_value ONLYOFFICE_JWT_SECRET)
+    if [[ ${#onlyoffice_secret} -lt 64 ]]; then
+      set_env ONLYOFFICE_JWT_SECRET "$(openssl rand -hex 32)"
+    fi
+    unset onlyoffice_secret
+
+    echo "[INFO] Iniciando servicios requeridos y OnlyOffice..."
+    "${compose[@]}" up -d db redis app web proxy onlyoffice
+
+    public_url=$(env_value NEXTCLOUD_PUBLIC_URL)
+    [[ -n $public_url ]] || { echo "[ERROR] NEXTCLOUD_PUBLIC_URL está vacío" >&2; exit 1; }
+
+    echo "[INFO] Configurando conector OnlyOffice en Nextcloud..."
+    bash set_config.sh --apply \
+      --public-url "$public_url" \
+      --allow-local-remote-servers \
+      --install-app
+    echo "[OK] OnlyOffice activado sin reconfigurar el modo de instalación."
     ;;
   onlyoffice-off)
     profiles=$(env_value COMPOSE_PROFILES)
+    COMPOSE_PROFILES=onlyoffice "${compose[@]}" stop onlyoffice >/dev/null 2>&1 || true
     new_profiles=$(printf '%s' "$profiles" | awk -F, '
       {
         out=""
@@ -133,7 +171,6 @@ case "${1:-}" in
     cp .env "$backup"
     chmod 600 "$backup"
     set_env COMPOSE_PROFILES "$new_profiles"
-    "${compose[@]}" stop onlyoffice >/dev/null 2>&1 || true
     echo "[OK] OnlyOffice desactivado. La app de Nextcloud permanece instalada."
     echo "[INFO] Copia de .env: $backup"
     ;;
@@ -210,7 +247,9 @@ case "${1:-}" in
     mapfile -t services < <("${compose[@]}" config --services)
     pull_services=()
     for service in "${services[@]}"; do
-      [[ $service == app ]] && continue
+      case $service in
+        app|manager) continue ;;
+      esac
       pull_services+=("$service")
     done
     if ((${#pull_services[@]} > 0)); then
@@ -222,9 +261,6 @@ case "${1:-}" in
     ;;
   update)
     exec bash scripts/update.sh --apply
-    ;;
-  help|-h|--help|"")
-    usage
     ;;
   *)
     echo "[ERROR] Comando desconocido: $1" >&2
