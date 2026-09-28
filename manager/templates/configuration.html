@@ -35,6 +35,12 @@
       <small>Ej.: America/Monterrey</small>
     </label>
 
+    <label class="checkline">
+      <input type="checkbox" name="dev_mode" {% if config.dev_mode %}checked{% endif %} {% if active_operation %}disabled{% endif %}>
+      <span>Modo desarrollo</span>
+    </label>
+    <small class="muted">Activa <code>debug=true</code>, <code>loglevel=0</code>, muestra errores PHP y desactiva OPcache. No usar en producción.</small>
+
     <div class="two-col">
       <label>PHP memory_limit
         <input name="php_memory" value="{{ config.php_memory }}" required {% if active_operation %}disabled{% endif %}>
@@ -77,7 +83,7 @@
     </div>
 
     <h2>Aplicación de cambios</h2>
-    <p class="muted">Guardar modifica solo <code>.env</code> y crea una copia previa. Para recrear servicios y aplicar los cambios use la vista Actualizar.</p>
+    <p class="muted">Guardar modifica solo <code>.env</code> y crea una copia previa. Para recrear servicios y aplicar los cambios use la vista Actualizar. Cambiar Modo desarrollo requiere recrear <code>app</code> para activar o retirar debug y OPcache.</p>
     <a class="button ghost" href="{{ url_for('updates_view') }}">Ir a Actualizar</a>
   </aside>
 </section>
