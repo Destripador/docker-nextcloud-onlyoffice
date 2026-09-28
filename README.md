@@ -25,6 +25,7 @@ simbólico temporal para flujos antiguos; consulte
 | `proxy` | Entrada HTTP/HTTPS mediante nginx-proxy | Puertos 80 y 443 |
 | `onlyoffice` | Document Server con JWT | Perfil Compose `onlyoffice`; a través de `/ds-vpath/` |
 | `acme` | Certificados mediante acme-companion | Perfil Compose `acme` |
+| `manager` | Panel web administrativo opcional | Perfil Compose `manager`; localhost:8090 por defecto |
 
 El stack usa tres redes:
 
@@ -236,10 +237,12 @@ los puertos configurados. Si publica directamente un puerto HTTPS distinto de
 Los componentes opcionales se controlan con `COMPOSE_PROFILES`:
 
 ```ini
-COMPOSE_PROFILES=                 # Nextcloud base
-COMPOSE_PROFILES=onlyoffice       # Nextcloud + OnlyOffice
-COMPOSE_PROFILES=acme             # Nextcloud + ACME
-COMPOSE_PROFILES=acme,onlyoffice  # stack completo
+COMPOSE_PROFILES=                         # Nextcloud base
+COMPOSE_PROFILES=onlyoffice               # Nextcloud + OnlyOffice
+COMPOSE_PROFILES=acme                     # Nextcloud + ACME
+COMPOSE_PROFILES=manager                  # panel administrativo local
+COMPOSE_PROFILES=onlyoffice,manager       # OnlyOffice + panel
+COMPOSE_PROFILES=acme,onlyoffice,manager  # todos los perfiles opcionales
 ```
 
 Para terminar TLS en otro proxy, no active `acme`, ajuste
@@ -310,6 +313,16 @@ docker compose logs --tail=200 SERVICIO
 docker compose logs --tail=200 --follow SERVICIO
 docker compose exec --user www-data app php occ status
 ```
+
+También puede habilitar el panel administrativo local:
+
+```sh
+bash manage.sh manager-on
+```
+
+Por seguridad escucha en `127.0.0.1:8090` de forma predeterminada y solo
+permite operaciones acotadas sobre los contenedores de este proyecto. Consulte
+[la guía del panel administrativo](docs/manager.md).
 
 Los logs pueden contener nombres, direcciones y URLs. Redáctelos antes de
 compartirlos. Comandos habituales:
@@ -396,6 +409,7 @@ actualizaciones automáticas de MariaDB ni salte versiones mayores. Procedimient
 - [Transición desde docker-compose.yml](docs/migration-compose.md)
 - [Backup y restauración](docs/backup-restore.md)
 - [Diagnóstico y problemas frecuentes](docs/troubleshooting.md)
+- [Panel administrativo web](docs/manager.md)
 - [Limitaciones y pruebas pendientes](docs/known-limitations.md)
 
 ## Seguridad antes de publicar un fork
