@@ -74,7 +74,7 @@ compose_ready=false
 config_valid=false
 services=()
 declare -A service_state=()
-compose=(docker compose --project-directory "$project_dir")
+compose=(docker compose --project-directory "$project_dir" -f "$project_dir/compose.yaml")
 
 if [[ -n ${COMPOSE_FILE:-} ]]; then
     warn 'COMPOSE_FILE está definido; se validará esa combinación efectiva. Confirme que todos sus archivos pertenecen a este despliegue.'
