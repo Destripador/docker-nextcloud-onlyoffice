@@ -47,6 +47,20 @@ SERVICES = {
     "acme": "ACME",
 }
 ACTIONS = {"start", "stop", "restart"}
+PROTECTED_APPS = {
+    "core",
+    "dashboard",
+    "files",
+    "files_sharing",
+    "files_trashbin",
+    "files_versions",
+    "logreader",
+    "oauth2",
+    "provisioning_api",
+    "settings",
+    "theming",
+    "twofactor_backupcodes",
+}
 
 
 def login_required(view):
@@ -117,6 +131,66 @@ def exec_check(service, command, user=None):
         return result.exit_code == 0, output
     except (APIError, DockerException, NotFound) as exc:
         return False, str(exc)
+
+
+def occ_json(arguments):
+    ok, output = exec_check(
+        "app",
+        ["php", "occ", *arguments, "--output=json", "--no-ansi", "--no-interaction"],
+        user="www-data",
+    )
+    if not ok:
+        return False, output
+    try:
+        return True, json.loads(output)
+    except (ValueError, json.JSONDecodeError):
+        return False, output
+
+
+def nextcloud_users():
+    ok, payload = occ_json(["user:list"])
+    if not ok or not isinstance(payload, dict):
+        return [], payload if isinstance(payload, str) else "No se pudo interpretar user:list."
+    users = [
+        {"uid": str(uid), "display_name": str(display_name or uid)}
+        for uid, display_name in payload.items()
+    ]
+    users.sort(key=lambda item: (item["display_name"].casefold(), item["uid"].casefold()))
+    return users, None
+
+
+def nextcloud_user_info(uid):
+    ok, payload = occ_json(["user:info", uid])
+    if not ok or not isinstance(payload, dict):
+        return None, payload if isinstance(payload, str) else "No se pudo interpretar user:info."
+    return payload, None
+
+
+def nextcloud_apps():
+    ok, payload = occ_json(["app:list"])
+    if not ok or not isinstance(payload, dict):
+        return [], payload if isinstance(payload, str) else "No se pudo interpretar app:list."
+
+    items = []
+    for state in ("enabled", "disabled"):
+        apps = payload.get(state, {})
+        if isinstance(apps, dict):
+            iterator = apps.items()
+        elif isinstance(apps, list):
+            iterator = ((name, "") for name in apps)
+        else:
+            iterator = []
+        for app_id, version in iterator:
+            items.append(
+                {
+                    "id": str(app_id),
+                    "version": str(version or ""),
+                    "state": state,
+                    "protected": str(app_id) in PROTECTED_APPS,
+                }
+            )
+    items.sort(key=lambda item: (item["state"] != "enabled", item["id"].casefold()))
+    return items, None
 
 
 def nextcloud_status():
@@ -639,6 +713,121 @@ def dashboard():
         human_size=human_size,
         project=PROJECT,
     )
+
+
+@app.get("/nextcloud/users")
+@login_required
+def users_view():
+    users, error = nextcloud_users()
+    return render_template(
+        "users.html",
+        users=users,
+        error=error,
+        admin_uid=read_env_map().get("NEXTCLOUD_ADMIN_USER", "admin"),
+        active_operation=active_operation(),
+        project=PROJECT,
+    )
+
+
+@app.get("/nextcloud/users/<uid>")
+@login_required
+def user_detail(uid):
+    if not re.fullmatch(r"[A-Za-z0-9_.@+-]{1,128}", uid):
+        abort(404)
+    info, error = nextcloud_user_info(uid)
+    return render_template(
+        "user_detail.html",
+        uid=uid,
+        info=info,
+        error=error,
+        admin_uid=read_env_map().get("NEXTCLOUD_ADMIN_USER", "admin"),
+        active_operation=active_operation(),
+        project=PROJECT,
+    )
+
+
+@app.post("/nextcloud/users/<uid>/<action>")
+@login_required
+def user_action(uid, action):
+    require_csrf()
+    if not re.fullmatch(r"[A-Za-z0-9_.@+-]{1,128}", uid):
+        abort(404)
+    if action not in {"enable", "disable"}:
+        abort(404)
+
+    running = active_operation()
+    if running:
+        flash(f"No se puede administrar usuarios mientras {running} está en ejecución.", "error")
+        return redirect(url_for("user_detail", uid=uid))
+
+    admin_uid = read_env_map().get("NEXTCLOUD_ADMIN_USER", "admin")
+    if action == "disable" and uid == admin_uid:
+        flash("No se permite deshabilitar la cuenta administrativa inicial desde este panel.", "error")
+        return redirect(url_for("user_detail", uid=uid))
+
+    confirmation = request.form.get("confirmation", "")
+    if confirmation != uid:
+        flash(f"Escriba {uid} exactamente para confirmar.", "error")
+        return redirect(url_for("user_detail", uid=uid))
+
+    ok, output = exec_check(
+        "app",
+        ["php", "occ", f"user:{action}", uid, "--no-ansi", "--no-interaction"],
+        user="www-data",
+    )
+    if ok:
+        flash(f"Usuario {uid}: acción {action} aplicada.", "success")
+    else:
+        flash(f"No se pudo modificar {uid}: {output}", "error")
+    return redirect(url_for("user_detail", uid=uid))
+
+
+@app.get("/nextcloud/apps")
+@login_required
+def apps_view():
+    apps, error = nextcloud_apps()
+    return render_template(
+        "apps.html",
+        apps=apps,
+        error=error,
+        active_operation=active_operation(),
+        project=PROJECT,
+    )
+
+
+@app.post("/nextcloud/apps/<app_id>/<action>")
+@login_required
+def app_action(app_id, action):
+    require_csrf()
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,128}", app_id):
+        abort(404)
+    if action not in {"enable", "disable"}:
+        abort(404)
+
+    running = active_operation()
+    if running:
+        flash(f"No se pueden administrar apps mientras {running} está en ejecución.", "error")
+        return redirect(url_for("apps_view"))
+
+    if action == "disable" and app_id in PROTECTED_APPS:
+        flash(f"{app_id} está protegida y no puede deshabilitarse desde el panel.", "error")
+        return redirect(url_for("apps_view"))
+
+    confirmation = request.form.get("confirmation", "")
+    if confirmation != app_id:
+        flash(f"Escriba {app_id} exactamente para confirmar.", "error")
+        return redirect(url_for("apps_view"))
+
+    ok, output = exec_check(
+        "app",
+        ["php", "occ", f"app:{action}", app_id, "--no-ansi", "--no-interaction"],
+        user="www-data",
+    )
+    if ok:
+        flash(f"App {app_id}: acción {action} aplicada.", "success")
+    else:
+        flash(f"No se pudo modificar {app_id}: {output}", "error")
+    return redirect(url_for("apps_view"))
 
 
 @app.get("/configuration")
