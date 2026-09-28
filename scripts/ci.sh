@@ -91,11 +91,19 @@ set_env NEXTCLOUD_OVERWRITE_PROTOCOL http
 set_env NEXTCLOUD_OVERWRITE_HOST localhost
 set_env NEXTCLOUD_PUBLIC_URL http://localhost
 set_env ACME_EMAIL ci@example.invalid
+set_env MANAGER_ADMIN_PASSWORD ci-manager-password
+set_env MANAGER_SECRET_KEY 3333333333333333333333333333333333333333333333333333333333333333
+set_env MANAGER_ADMIN_USER admin
+set_env MANAGER_BIND_ADDRESS 127.0.0.1
+set_env MANAGER_PORT 8090
 
-for profiles in '' onlyoffice acme acme,onlyoffice; do
+python -m py_compile manager/app.py
+ok 'Sintaxis Python del manager'
+
+for profiles in '' onlyoffice acme manager onlyoffice,manager acme,onlyoffice,manager; do
     COMPOSE_PROFILES="$profiles" docker compose         --project-directory "$root"         --env-file "$tmp_env"         -f "$root/compose.yaml"         config --quiet
 done
-ok 'Compose válido para base, OnlyOffice, ACME y stack completo'
+ok 'Compose válido para perfiles base, OnlyOffice, ACME y manager'
 
 if command -v jq >/dev/null 2>&1; then
     config_json=$(COMPOSE_PROFILES=onlyoffice docker compose         --project-directory "$root"         --env-file "$tmp_env"         -f "$root/compose.yaml"         config --format json)
