@@ -367,21 +367,18 @@ if [[ $config_valid == true && $docker_ready == true ]]; then
 fi
 
 if [[ $config_valid == true && $docker_ready == true ]]; then
-    if is_running db && run_timeout 15 "${compose[@]}" exec -T db \
-        healthcheck.sh --connect --innodb_initialized >/dev/null 2>&1; then
-        ok 'MariaDB responde'
-    else
-        error 'MariaDB: servicio detenido o sonda fallida'
-    fi
-
     if is_running db; then
-        if run_timeout 15 "${compose[@]}" exec -T db sh -ec \
-            'mariadb -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -e "SELECT 1" >/dev/null' \
+        db_container_id=$("${compose[@]}" ps --status running --quiet db 2>/dev/null | head -n 1)
+        if [[ -n $db_container_id ]] && run_timeout 10 docker exec "$db_container_id" sh -ec \
+            'mariadb -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -Nse "SELECT 1" | grep -qx 1' \
             >/dev/null 2>&1; then
-            ok 'MariaDB acepta MYSQL_USER/MYSQL_PASSWORD actuales'
+            ok 'MariaDB responde y acepta las credenciales actuales'
         else
-            error 'MariaDB rechaza las credenciales actuales; el datadir puede haber sido inicializado con otro .env'
+            error 'MariaDB: no respondió a una consulta autenticada con las credenciales actuales'
         fi
+        unset db_container_id
+    else
+        error 'MariaDB: servicio no está en ejecución'
     fi
 
     if is_running app; then
