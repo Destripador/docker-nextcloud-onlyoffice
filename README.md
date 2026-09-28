@@ -78,7 +78,53 @@ docker version
 docker compose version
 ```
 
-## Instalación desde un clon limpio
+## Instalación rápida recomendada
+
+Para una instalación nueva no necesita crear `.env`, generar secretos ni conocer
+Docker Compose. Clone el repositorio y ejecute:
+
+```sh
+git clone https://github.com/Destripador/docker-nextcloud-onlyoffice.git
+cd docker-nextcloud-onlyoffice
+bash install.sh
+```
+
+El asistente ofrece cuatro modos:
+
+```text
+1) Desarrollo básico
+   Nextcloud + MariaDB + Redis
+
+2) Desarrollo completo
+   Lo anterior + OnlyOffice
+
+3) Servidor público
+   Dominio + HTTPS automático + OnlyOffice opcional
+
+4) Personalizado
+```
+
+El instalador genera los secretos, crea `.env`, prepara los directorios y
+permisos, crea la red Docker, ejecuta el preflight, construye la imagen e inicia
+el stack. No borra instalaciones existentes.
+
+También puede ejecutarse sin menú:
+
+```sh
+bash install.sh --dev
+bash install.sh --dev-full
+bash install.sh --production --domain nube.example.com --email admin@example.com
+```
+
+Para preparar todo sin iniciar contenedores:
+
+```sh
+bash install.sh --dev --no-start
+```
+
+Consulte [la guía del instalador](docs/installer.md) para opciones adicionales.
+
+## Instalación manual / avanzada
 
 ### 1. Clonar y crear la configuración privada
 
