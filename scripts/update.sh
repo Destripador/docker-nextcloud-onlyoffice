@@ -67,6 +67,19 @@ command -v docker >/dev/null 2>&1 || { printf '[ERROR] Docker no está disponibl
 printf '[INFO] Ejecutando preflight...\n'
 bash scripts/preflight.sh --quiet
 
+for required_file in Dockerfile supervisord.conf config/php-fpm/zz-nextcloud.conf; do
+    [[ -r $required_file ]] || {
+        printf '[ERROR] Falta archivo requerido para construir app: %s\n' "$required_file" >&2
+        exit 1
+    }
+done
+
+printf '[INFO] Validando que el contexto Docker incluya la configuración PHP-FPM...\n'
+if [[ -f .dockerignore ]] && ! grep -qx '!config/php-fpm/zz-nextcloud.conf' .dockerignore; then
+    printf '[ERROR] .dockerignore excluye config/php-fpm/zz-nextcloud.conf del contexto de build\n' >&2
+    exit 1
+fi
+
 printf '[INFO] Creando backup previo obligatorio...\n'
 if [[ -n $backup_output ]]; then
     bash scripts/backup.sh --output "$backup_output"
