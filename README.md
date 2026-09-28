@@ -146,7 +146,40 @@ docker network inspect nginx-proxy >/dev/null 2>&1 || docker network create ngin
 
 Si cambia el nombre en `.env`, use ese mismo nombre en ambos comandos.
 
-### 3. Configurar DNS y HTTPS
+### 3. Ejecutar el preflight
+
+Antes de construir imágenes o iniciar contenedores, ejecute el diagnóstico de
+preinstalación. Es de solo lectura: no crea redes, directorios, contenedores ni
+modifica `.env`.
+
+```sh
+bash scripts/preflight.sh
+```
+
+Comprueba sistema, Docker/Compose, herramientas auxiliares, RAM, espacio,
+variables y perfiles, permisos de `.env`, persistencia previa, permisos de los
+bind mounts, puertos, red externa y el Compose efectivo. El resultado termina en:
+
+```text
+[READY] ...
+```
+
+o:
+
+```text
+[BLOCKED] ...
+```
+
+No continúe con `docker compose up` mientras existan errores bloqueantes. Para
+automatización están disponibles:
+
+```sh
+bash scripts/preflight.sh --quiet
+bash scripts/preflight.sh --json
+bash scripts/preflight.sh --verbose
+```
+
+### 4. Configurar DNS y HTTPS
 
 Haga que el registro A y, si corresponde, AAAA de `NEXTCLOUD_DOMAIN` resuelva al
 host. Permita tráfico entrante TCP 80/443 y confirme que ningún otro proceso usa
@@ -167,7 +200,7 @@ Para terminar TLS en otro proxy, no active `acme`, ajuste
 `NEXTCLOUD_OVERWRITE_PROTOCOL` y documente su propia cadena de proxies confiables. Detalles:
 [docs/configuration.md](docs/configuration.md#dominio-proxy-y-tls).
 
-### 4. Validar, construir e iniciar
+### 5. Validar, construir e iniciar
 
 Valide primero la base y después la combinación efectiva. El segundo comando
 incluye automáticamente `compose.override.yaml` si existe:
@@ -191,7 +224,7 @@ Esos dos últimos pasos modifican el runtime. Ejecútelos solo después de revis
 el plan y las copias de seguridad. Esta actualización del repositorio no los
 ejecutó.
 
-### 5. Acceso inicial y OnlyOffice
+### 6. Acceso inicial y OnlyOffice
 
 Abra la URL indicada por `NEXTCLOUD_PUBLIC_URL`. Las variables de `.env`
 realizan la instalación inicial de Nextcloud cuando el volumen está vacío.
