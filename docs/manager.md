@@ -10,6 +10,8 @@ La primera versión permite:
 - iniciar, detener y reiniciar servicios del proyecto;
 - consultar estado, health e imagen efectiva;
 - mostrar la versión de Nextcloud mediante `occ status`;
+- ejecutar una vista de diagnóstico para MariaDB, Redis, Nginx, proxy, OCC y OnlyOffice;
+- activar o desactivar el modo mantenimiento de Nextcloud;
 - consultar las últimas 250 líneas de logs por servicio;
 - administrar únicamente contenedores con la etiqueta
   `com.docker.compose.project` que coincide con este stack.
