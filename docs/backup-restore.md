@@ -1,5 +1,32 @@
 # Backup y restauración
 
+La ruta recomendada ahora es usar los scripts incluidos:
+
+```sh
+bash manage.sh backup
+```
+
+o directamente:
+
+```sh
+bash scripts/backup.sh
+```
+
+Para restaurar en un checkout limpio:
+
+```sh
+bash scripts/restore.sh --from /ruta/nextcloud-AAAAMMDDTHHMMSSZ --apply
+```
+
+El backup entra temporalmente en modo mantenimiento, detiene los servicios que
+escriben, genera un dump lógico de MariaDB, archiva la persistencia y crea
+`SHA256SUMS`. Un `trap` intenta reactivar los servicios y salir de
+mantenimiento incluso si ocurre un error.
+
+La restauración está deliberadamente protegida: no borra rutas existentes y se
+niega a continuar si detecta persistencia no vacía. Está pensada para un checkout
+limpio o un entorno aislado.
+
 Un backup útil debe poder restaurarse. Pruebe este procedimiento en un host o
 proyecto aislado antes de depender de él. Los comandos son una guía y no se
 ejecutaron durante la actualización del repositorio.
