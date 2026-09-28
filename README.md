@@ -346,6 +346,7 @@ actualizaciones automáticas de MariaDB ni salte versiones mayores. Procedimient
 ## Documentación
 
 - [Configuración y secretos](docs/configuration.md)
+- [Preflight de instalación](docs/preflight.md)
 - [Dockge](docs/dockge.md)
 - [Transición desde docker-compose.yml](docs/migration-compose.md)
 - [Backup y restauración](docs/backup-restore.md)
