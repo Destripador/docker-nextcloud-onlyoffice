@@ -342,11 +342,11 @@ if [[ $existing_install == true ]]; then
         exit 0
     fi
 
-    info 'Asegurando Nextcloud y OnlyOffice en ejecución...'
+    info 'Asegurando el stack base y OnlyOffice en ejecución...'
     if "${compose[@]}" up --help 2>/dev/null | grep -q -- '--wait'; then
-        "${compose[@]}" up -d --wait --wait-timeout 300 app web onlyoffice
+        "${compose[@]}" up -d --wait --wait-timeout 300 db redis app web proxy onlyoffice
     else
-        "${compose[@]}" up -d app web onlyoffice
+        "${compose[@]}" up -d db redis app web proxy onlyoffice
     fi
 
     public_url=$(env_value NEXTCLOUD_PUBLIC_URL)
